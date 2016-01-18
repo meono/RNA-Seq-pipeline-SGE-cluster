@@ -179,7 +179,6 @@ def invoke_cluster(path):
 
 
 def run_fastqc(name, input_path, output_path, tools_path):
-    'Actually compute output'
     print('Setting up fastqc analysis...')
 
     # Check that everything is in place
@@ -200,7 +199,46 @@ def run_fastqc(name, input_path, output_path, tools_path):
     sizes = list(map(os.path.getsize, data_files))
     total_size = reduce(operator.add, sizes)
 
+    make_bash_script (name,input_path,output_path,tools_path)
 
+def run_fastx_quality_stats(name, input_path, output_path, tools_path):
+    print('Running fastx quality stats')
+
+    # Check that everything is in place
+    
+    # Tool found?
+    path = os.path.join(tools_path, 'fastx_toolkit/fastx_quality_stats')
+    assert os.path.isfile(path), "Could not find fastx_quality_stats at path %s" % path
+
+    # Data files found?
+    fastqc_files_path = os.path.join(output_path, 'fastqc')
+    data_files = glob.glob(os.path.join(fastqc_files_path, '*.zip') )
+    assert len(data_files) > 0, "Could not find any .gz files in folder %s" % input_path
+
+    # Setup the output for this step
+    output_path = os.path.join(output_path, 'fastx_quality_stats')
+    create_path_if_not_exists(output_path)
+
+
+def run_fastx_trimmer (name, input_path, output_path, tools_path):
+    print('Running fastx trimmer')
+
+    # Check that everything is in place
+    
+    # Tool found?
+    path = os.path.join(tools_path, 'fastx_toolkit/fastx_trimmer')
+    assert os.path.isfile(path), "Could not find fastx_trimmer at path %s" % path
+
+    # Data files found?
+    fastq_files_path = os.path.join(output_path, 'fastq')
+    data_files = glob.glob(os.path.join(fastq_files_path, '*.zip') )
+    assert len(data_files) > 0, "Could not find any fastq.gz files in folder %s" % input_path
+
+    # Setup the output for this step
+    output_path = os.path.join(output_path, 'fastx_trimmer')
+    create_path_if_not_exists(output_path)
+
+def make_bash_script (name,input_path,output_path, tools_path, pipeline_job_path):
     bash_script = '''#!/bin/bash                         
 #                                  
 #$ -S /bin/bash                    
@@ -214,15 +252,6 @@ def run_fastqc(name, input_path, output_path, tools_path):
 #$ -l h_rt=24:00:00                     #-- runtime limit (see above; this requests 24 hours)
 #$ -t 1-%(task_count)o                  #-- number of tasks if desired (see Tips section)
 
-# Anything under here can be a bash script
-
-# If you used the -t option above, this same script will be run for each task,
-# but with $SGE_TASK_ID set to a different value each time (1-10 in this case).
-# The commands below are one way to select a different input (PDB codes in
-# this example) for each task.  Note that the bash arrays are indexed from 0,
-# while task IDs start at 1, so the first entry in the tasks array variable
-# is simply a placeholder
-
 inputs=(0 %(data_joined)s)
 input=${inputs[$SGE_TASK_ID]}
 
@@ -232,11 +261,11 @@ echo "Input for this task: " $input
 
 hostname
 date
-%(fastqc_path)s $input --outdir=%(output_path)s
+%(pipeline_job_path)s $input --outdir=%(output_path)s
 date
 
 qstat -j $JOB_ID                                  
-    '''%{'output_path':output_path, 'task_count': len(data_files), 'data_joined':str.join(' ',data_files), 'fastqc_path':fastqc_path}
+    '''%{'output_path':output_path, 'task_count': len(data_files), 'data_joined':str.join(' ',data_files), 'pipeline_job_path':pipeline_job_path}
 
     print('====================================================================================================================================\n')
     print(bash_script)
@@ -247,13 +276,14 @@ qstat -j $JOB_ID
         print('K, bye!') 
         return
 
-    bash_path = os.path.join(output_path, name+'fastqc_submit_script.sh')
+    bash_path = os.path.join(output_path, name+'this_job_submit_script.sh')
 
     text_file = open(bash_path, "w")
     text_file.write(bash_script)
     text_file.close()
 
     invoke_cluster(bash_path)
+
 
 def main(argv=None):
     'Program wrapper'
@@ -289,9 +319,8 @@ def main(argv=None):
     
     if step == 'fastqc':
         run_fastqc(args.name, input_path, output_path, tools_path)
-    elif step == 'fastq_trimmer':
-        # next step call here
-        assert False, 'Not implemented yet'
+    elif step == 'fastx_quality_stats':
+        run_fastx_quality_stats(args.name, input_path, output_path, tools_path)
     else :
         LOG.error('Did not understand step "%s". Possible values are fastqc, fastqc_post. Run aborted.' % step)
         return 1
