@@ -119,6 +119,9 @@ inputs=(0 %(data_joined)s)
 input=${inputs[$SGE_TASK_ID]}
 TOOL="%(tool_path)s"
 OUT="%(output_path)s"
+OUTFILE=${input}_trimmed
+GTF_ANNOT=/netapp/home/dreuxj/hg38/Annotation/genes.gtf
+BWT2_IDX=/netapp/home/dreuxj/hg38/Sequence/Bowtie2Index/genome
 
 echo "Job ID is:" $JOB_ID
 echo "SGE Task ID:" $SGE_TASK_ID
@@ -194,8 +197,6 @@ def run_fastx_trimmer(name, input_path, output_path, tools_path):
     data_files = glob.glob(os.path.join(input_path, '*.gz'))
     assert len(data_files) > 0, "Could not find any .gz files in folder %s" % input_path
 
-    # need to unzip files for this to run.
-
     # Setup the output for this step
     output_path = os.path.join(output_path, 'fastx_trimmer')
     create_path_if_not_exists(output_path)
@@ -204,13 +205,9 @@ def run_fastx_trimmer(name, input_path, output_path, tools_path):
     sizes = list(map(os.path.getsize, data_files))
     total_size = reduce(operator.add, sizes)
 
+    # need to unzip files for this to run.
     # what is your command
-    command = "gunzip $input > $input\
-    $TOOL -f10 -i $input -o $OUT"
-
-
-
-
+    command = "gzip -cd $input | $TOOL -f10 -Q33 | gzip -c > $OUTFILE"
 
     #what are you calling this step in the pipeline
     which_step = 'FASTX_TRIMMER'
@@ -220,7 +217,32 @@ def run_fastx_trimmer(name, input_path, output_path, tools_path):
 
 
 def run_tophat(name, input_path, output_path, tools_path):
-    pass
+    
+    # Tool found?
+    tophat_path = os.path.join(tools_path, 'tophat2/tophat2')
+    assert os.path.isfile(tophat_path), "Could not find tophat2 at path %s" % tophat_path
+
+    # Trimmed data files found? 
+    data_files = glob.glob(os.path.join(input_path, '*_trimmed'))
+    assert len(data_files) > 0, "Could not find any -trimmed files in folder %s" % input_path
+
+    # Setup the output for this step
+    output_path = os.path.join(output_path, 'tophat')
+    create_path_if_not_exists(output_path)
+
+    # Compute size of input (can be useful for runtime limits, below).
+    sizes = list(map(os.path.getsize, data_files))
+    total_size = reduce(operator.add, sizes)
+
+    # what is your command
+    # !!! run this on a SINGLE FILE FIRST. Then you can do the rest (transcriptome-idx problem)
+    command = "$TOOL -G $GTF_ANNOT --transcriptome-index $OUT/trans_idx -o $OUT $BWT2_IDX $input"
+
+    #what are you calling this step in the pipeline
+    which_step = 'TOPHAT'
+
+    # send to bash script function
+    write_bash_script(name, data_files, output_path, tophat_path, command, which_step)
 
 
 def run_cufflinks(name, input_path, output_path, tools_path):
