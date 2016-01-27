@@ -178,21 +178,22 @@ def invoke_cluster(path):
     print("Success. Cancer solved.")
 
 
-def run_fastqc(name, input_path, output_path, tools_path):
-    print('Setting up fastqc analysis...')
+def align_me(name, input_path, output_path, tools_path):
+    print('Setting up bowtie2 alignement...')
 
     # Check that everything is in place
-    
-    # Fast qc found?
-    fastqc_path = os.path.join(tools_path, 'FastQC/fastqc')
-    assert os.path.isfile(fastqc_path), "Could not find fastqc at path %s" % fastqc_path
+
+    #bowtie2 found?
+
+    bowtie_path = os.path.join(tools_path, 'Bowtie2/bowtie2')
+    assert os.path.isfile(bowtie_path), "Could not find bowtie at path %s" % bowtie_path
 
     # Data files found?
     data_files = glob.glob(os.path.join(input_path, '*.gz') )
     assert len(data_files) > 0, "Could not find any .gz files in folder %s" % input_path
 
     # Setup the output for this step
-    output_path = os.path.join(output_path, 'fastqc')
+    output_path = os.path.join(output_path, 'bowtie')
     create_path_if_not_exists(output_path)
 
     # Compute size of input (can be useful for runtime limits, below).
@@ -231,11 +232,11 @@ echo "Input for this task: " $input
 
 hostname
 date
-%(fastqc_path)s $input --outdir=%(output_path)s
+%(bowtie_path)s -x /netapp/home/dreuxj/hg38/Sequence/Bowtie2Index/genome -U $input
 date
 
 qstat -j $JOB_ID                                  
-    '''%{'output_path':output_path, 'task_count': len(data_files), 'data_joined':str.join(' ',data_files), 'fastqc_path':fastqc_path}
+    '''%{'output_path':output_path, 'task_count': len(data_files), 'data_joined':str.join(' ',data_files), 'bowtie_path':bowtie_path}
 
     print('====================================================================================================================================\n')
     print(bash_script)
@@ -246,31 +247,13 @@ qstat -j $JOB_ID
         print('K, bye!') 
         return
 
-    bash_path = os.path.join(output_path, name+'fastqc_submit_script.sh')
+    bash_path = os.path.join(output_path, name+'bowtie_submit_script.sh')
 
     text_file = open(bash_path, "w")
     text_file.write(bash_script)
     text_file.close()
 
     invoke_cluster(bash_path)
-
-def run_fastx_quality_stats(name, input_path, output_path, tools_path):
-    print('Running fastx quality stats')
-
-    # Check that everything is in place
-    
-    # Tool found?
-    path = os.path.join(tools_path, 'fastx_toolkit/fastx_quality_stats')
-    assert os.path.isfile(path), "Could not find fastx_quality_stats at path %s" % path
-
-    # Data files found?
-    fastqc_files_path = os.path.join(output_path, 'fastqc')
-    data_files = glob.glob(os.path.join(fastqc_files_path, '*.zip') )
-    assert len(data_files) > 0, "Could not find any .gz files in folder %s" % input_path
-
-    # Setup the output for this step
-    output_path = os.path.join(output_path, 'fastx_quality_stats')
-    create_path_if_not_exists(output_path)
 
 
 def main(argv=None):
@@ -307,8 +290,8 @@ def main(argv=None):
     
     if step == 'fastqc':
         run_fastqc(args.name, input_path, output_path, tools_path)
-    elif step == 'fastx_quality_stats':
-        run_fastx_quality_stats(args.name, input_path, output_path, tools_path)
+    elif step == 'bowtie':
+        align_me(args.name, input_path, output_path, tools_path)
     else :
         LOG.error('Did not understand step "%s". Possible values are fastqc, fastqc_post. Run aborted.' % step)
         return 1

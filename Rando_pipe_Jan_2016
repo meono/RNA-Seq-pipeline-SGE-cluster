@@ -1,0 +1,200 @@
+--------------------------------------------------------------------------------------------------------------
+RANDO RNA SEQ PIPELINE!! - JAN 2016
+---------------------------------------------------------------------------------------------------------------
+
+
+TOOLS
+---------------------------------------------------------------------------------------------------------------
+FASTx_toolkit
+Was difficult to install. Older versions that are already compiled is ok for this one. 
+http://hannonlab.cshl.edu/fastx_toolkit/download.html
+
+----------------------------------------------------------------------------------------------------------------
+Bowtie2 
+http://sourceforge.net/projects/bowtie-bio/files/bowtie2/2.2.6/
+http://bowtie-bio.sourceforge.net/bowtie2/manual.shtml#obtaining-bowtie-2
+
+----------------------------------------------------------------------------------------------------------------
+Tophat2
+reqs Bowtie and Samtools to be also installed. Not sure if these are included in the install? 
+Also requires the Boost libraries(??)
+
+https://github.com/infphilo/tophat
+
+---------------------------------------------------------------------------------------------------------------
+SAMtools
+http://www.htslib.org/download/
+
+---------------------------------------------------------------------------------------------------------------
+Cufflinks et al
+http://cole-trapnell-lab.github.io/cufflinks/install/
+
+---------------------------------------------------------------------------------------------------------------
+Sickle
+https://github.com/najoshi/sickle
+
+
+
+EXTRAS
+---------------------------------------------------------------------------------------------------------------
+hg38 human genome assembly - NCBI version
+Download & unzip:
+ftp://igenome:G3nom3s4u@ussd-ftp.illumina.com/Homo_sapiens/NCBI/GRCh38/Homo_sapiens_NCBI_GRCh38.tar.gz
+
+Contains the complete human genome seq (fasta file) with annotation file (.gtf) bwt and bwt2 indexes. Other stuff included too that might be useful down the line.
+22GB unzipped
+
+
+
+
+RANDO RNA SEQ PIPELINE STEPS
+---------------------------------------------------------------------------------------------------------------
+
+1. FASTQC - or sickle in the future
+2. FASTQ trimmer (fastx_toolkit) - trim low quality bases (first 10bp in this exp). Input is raw FASTQ files, output is (hopefully cleaner) FASTQ files
+3. Tophat2 - splice junction read aligner that uses bowtie2 aligner. Input is annotation file (obtained in EXTRAS), bowtie2 index (EXTRAS), fasta reference file (EXTRAS)and FASTQ files from step 2. Output is BAM and BED files.
+3.b Checking the aligner output with Samtools/Bedtools
+4. Cufflinks - assemble transcripts + quantifies exp
+5. Cuffmerge - merge the different assemblies (from reps/conditions) = final transcriptome assembly
+5b.  Optional: Cuffcompare - to get quality of your assembly (comps to ref)
+5c. Optional: Cuffquant - pre-computes gene and transcript exp quantification.
+6. CuffDiff - the HG. Compares conditions.
+6b. Optional: Cuffnorm - applies extra level of normalization after cuffdiff for DS clustering
+7. CummeRbund, EdgeR etc.
+
+
+http://cole-trapnell-lab.github.io/cufflinks/images/tuxedo_workflow.png
+
+
+
+
+1. FASTQC
+---------------------------------------------------------------------------------------------------------------
+
+/netapp/home/dreuxj/JD1291/FastQC/fastqc `find /netapp/home/dreuxj/JD1291/data/gladstone/150710_D00108_0364_BC6VG3ANXX_Project_gladstone-JD1291/Sample_JD1291-A-bc11-Vastus-pooled/*.gz` --outdir=/netapp/home/dreuxj/results-fastq/
+
+#command for scp here to get htmls back??
+>Input = raw fastq reads
+>Output = HTML
+
+
+2. FASTQ Trimmer
+---------------------------------------------------------------------------------------------------------------
+
+fastx_trimmer -f 10 -i <input> -o <output>
+
+>Input = raw fastq reads
+>Output = fastq
+
+#run qc again after this step to double check any other problems
+
+
+3. ALIGNEMENT
+---------------------------------------------------------------------------------------------------------------
+Tophat manual: https://ccb.jhu.edu/software/tophat/manual.shtml
+
+tophat2 -G <full/path/to/annotation/file.gtf> --transcriptome-index <dir/file_prefix>  -o <specify/output/folder/here> <EXTRAS/bwt2/index/path/basename>   <step/2/fastq/file>
+
+
+# also tophat has a text output in the command line as it is running - is it possible to see this or have it in a txt file I can "tail"?
+
+#Bowtie index basename is "genome". Must give complete path to command. Also need to keep fasta shortcut in same folder to run faster.
+
+#there's also a -p [num of threads] option people seem to like, not sure what to do about it
+
+#transcriptome-index <dir/prefix>: **** Only after the transcriptome files are built with one of the methods above, by a single TopHat process, it is safe to run multiple TopHat processes simultaneously making use of the same pre-built transcriptome index data!! *** 
+For future runs don't specify -G option, only trnascriptome-index folder location.
+
+>Input: fastq files, gtf ref, btw index
+>Output specified after -o option is:
+accepted_hits.BAM 		#reads that have a match in the ref, could be aligned at multiple locations in the red
+unmapped.BAM 			#reads that didn't match anywhere in the human genome (poor quality, contaminants, repetitive seq w/ too much ambiguity,who knows??)
+align_summary.txt 		#stats on how well the algorithm did
+deletions.BED
+insertions.BED
+junctions.BED
+logs					# a dir that contains internal intermediate files
+
+
+3.b CHECK ALIGNEMENT
+---------------------------------------------------------------------------------------------------------------
+samtools flagstat <tophat_out>/unmapped.bam > tophat_out/unmapped_flagstat.txt 		#give me some stats
+
+>Input: unmapped.bam
+>Output: txt
+
+
+samtools index -b <tophatout /accepted_hits.bam> 	# indexto visualize on IGV locally - so need to grab  
+
+>Input: accepted_hits.bam
+>Output: .bai index 
+
+
+bamtools convert -format sam -in accepted_hits.*.bam -out accepted_hits.*.sam #convert to sam format for cuff input
+
+>Input: accepted_hits.bam
+>Output: accepted_hits.sam
+
+
+
+4. CUFFLINKS
+---------------------------------------------------------------------------------------------------------------
+cufflinks -G <hg38/annotation/file.gtf> -b <hg38/genome.fa> accepted_hits.sam -o <output/dir/here>
+
+>Input: gtf ref, hg38.fasta, accepted_hits.bam
+>Output as follows:
+genes.fpkm_tracking
+isoforms.fkm_tracking
+skipped.gtf
+transcripts.gtf
+
+
+
+5.b/c CUFFCOMPARE/CUFFQUANT
+---------------------------------------------------------------------------------------------------------------
+pass for now
+
+
+6. CUFFDIFF
+---------------------------------------------------------------------------------------------------------------
+cuffdiff -o <output/dir/here> -L <quiescent, activated> -b <ref/file.fasta> <transcripts.gtf> <sample1_hits.bam> <sample2_hits.bam>
+
+
+# Supply replicate BAMs as comma separated lists for each condition: sample1_rep1.sam,sample1_rep2.sam,...sample1_repM.sam
+# -L is comma seprated list of labels for conditions
+#transcripts.gtf is cufflinks output, either one is fine
+
+> Input: hg38 fasta, transcripts.gtf, accepted_hits.bam for all conditions
+
+> Output: 
+
+isoforms.fpkm_tracking	
+genes.fpkm_tracking	
+cds.fpkm_tracking	
+tss_groups.fpkm_tracking	
+
+isoforms.count_tracking	
+genes.count_tracking	
+cds.count_tracking	
+tss_groups.count_tracking	
+
+isoforms.read_group_tracking	
+genes.read_group_tracking	
+cds.read_group_tracking	C
+tss_groups.read_group_tracking	
+
+isoform_exp.diff	
+gene_exp.diff	
+tss_group_exp.diff	
+cds_exp.diff	
+
+# also log output when it runs i'd like to save
+
+7. R LAND
+---------------------------------------------------------------------------------------------------------------
+Local
+
+Filter cuffdiff output on signitifcantly diff exp genes and transcripts, then plug into cummerbund
+
+Also can use DAVID
+

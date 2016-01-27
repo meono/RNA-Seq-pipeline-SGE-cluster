@@ -1,0 +1,57 @@
+#Compiling code on the cluster
+Several nodes in the cluster allow you to log on from chef or sous using ssh:
+
+iqint (64-bit Xeon)
+optint2 (Opteron)
+xeonint (32-bit Xeon, x86)
+These nodes have a few extra packages installed (see Opteron_node_config and x86_node_config) to allow you to compile C++ and F77/F90 code. They can also be used for quick (less than 10 minutes) testing of your code. You can't log in to any other node directly.
+
+The following compilers are available:
+
+gcc 4.4.7 (distro standard)
+clang 3.4
+gcc 4.8.2
+>>>  scl enable devtoolset-2 bash to enable this version of gcc
+
+To compile optimized 64-bit code that is compatible with all Intel and AMD 64-bit processors (i.e. only MMX, SSE, and SSE2 instructions), use the following GCC flags:
+
+
+-m64 -mmmx -msse -msse2
+
+
+Once in chef (or sous):
+
+ssh dreuxj@iqint
+
+
+
+Instead download it yourself:
+
+
+
+Copy the file "foobar.txt" from the local host to a remote host
+
+$ scp foobar.txt your_username@remotehost.edu:/some/remote/directory
+
+
+Copy the directory "foo" from the local host to a remote host's directory "bar"
+
+$ scp -r foo your_username@remotehost.edu:/some/remote/directory/bar
+
+
+If local to remote, you must not be in your ssh instance!!
+
+looks like this:
+scp Downloads/bowtie2-2.2.6-source.zip dreuxj@chef.compbio.ucsf.edu:/netapp/home/dreuxj
+
+unzip bowtie ....
+
+login to iqint
+
+cd bowtie
+
+make
+
+
+mpve tp the tools folder
+

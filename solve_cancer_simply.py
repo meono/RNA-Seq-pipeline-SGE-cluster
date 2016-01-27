@@ -119,9 +119,10 @@ inputs=(0 %(data_joined)s)
 input=${inputs[$SGE_TASK_ID]}
 TOOL="%(tool_path)s"
 OUT="%(output_path)s"
-OUTFILE=${input}_trimmed
+OUTFILE=${input}_trimmed.fastq.gz
 GTF_ANNOT=/netapp/home/dreuxj/hg38/Annotation/genes.gtf
 BWT2_IDX=/netapp/home/dreuxj/hg38/Sequence/Bowtie2Index/genome
+GENOME_DIR = /netapp/home/dreuxj/GRCh38_Gencode24
 
 echo "Job ID is:" $JOB_ID
 echo "SGE Task ID:" $SGE_TASK_ID
@@ -223,7 +224,7 @@ def run_tophat(name, input_path, output_path, tools_path):
     assert os.path.isfile(tophat_path), "Could not find tophat2 at path %s" % tophat_path
 
     # Trimmed data files found? 
-    data_files = glob.glob(os.path.join(input_path, '*_trimmed'))
+    data_files = glob.glob(os.path.join(input_path, '*_trimmed.fastq.gz'))
     assert len(data_files) > 0, "Could not find any -trimmed files in folder %s" % input_path
 
     # Setup the output for this step
@@ -243,6 +244,34 @@ def run_tophat(name, input_path, output_path, tools_path):
 
     # send to bash script function
     write_bash_script(name, data_files, output_path, tophat_path, command, which_step)
+
+def run_STAR(name, input_path, output_path, tools_path):
+    
+    # Tool found?
+    star_path = os.path.join(tools_path, 'STAR/STAR')
+    assert os.path.isfile(star_path), "Could not find STAR at path %s" % star_path
+
+    # Trimmed data files found? 
+    data_files = glob.glob(os.path.join(input_path, '*.fastq.gz'))
+    assert len(data_files) > 0, "Could not find any -trimmed files in folder %s" % input_path
+
+    # Setup the output for this step
+    output_path = os.path.join(output_path, 'STAR')
+    create_path_if_not_exists(output_path)
+
+    # Compute size of input (can be useful for runtime limits, below).
+    sizes = list(map(os.path.getsize, data_files))
+    total_size = reduce(operator.add, sizes)
+
+    # what is your command
+    command = "$TOOL --genomeDir $GENOME_DIR --readFilesCommand gunzip -c $INPUT --outSAMstrandField intronMotif \
+    --outFilterIntronMotifs RemoveNoncanonicalUnannotated --outFilterType BySJout"
+
+    #what are you calling this step in the pipeline
+    which_step = 'STAR'
+
+    # send to bash script function
+    write_bash_script(name, data_files, output_path, star_path, command, which_step)
 
 
 def run_cufflinks(name, input_path, output_path, tools_path):
@@ -287,6 +316,8 @@ def main(argv=None):
         run_fastx_trimmer(name, input_path, output_path, tools_path)
     elif step == 'tophat':
         run_tophat(name, input_path, output_path, tools_path)
+    elif step == 'STAR':
+        run_STAR(name, input_path, output_path, tools_path)    
     elif step == 'cufflinks':
         run_cufflinks(name, input_path, output_path, tools_path)
     elif step == 'cuffdiff':
@@ -294,7 +325,7 @@ def main(argv=None):
     elif step == 'cuffmerge':
         run_cuffmerge(name, input_path, output_path, tools_path)
     else:
-        LOG.error('Did not understand step "%s". Possible values are fastqc, trimmer, tophat, cufflinks, cuffdiff, and\
+        LOG.error('Did not understand step "%s". Possible values are fastqc, trimmer, tophat, STAR, cufflinks, cuffdiff, and\
                   cuffmerge. Run aborted.' % step)
         return 1
 
