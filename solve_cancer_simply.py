@@ -99,7 +99,7 @@ def invoke_cluster(path):
     print("Success. Cancer solved.")
 
 
-def write_bash_script(name, data_files, output_path, tool_path, command, which_step):
+def write_bash_script(name, data_files, output_path, mem_req, tool_path, command, which_step):
     bash_script = '''
 
 #!/bin/bash
@@ -109,7 +109,7 @@ def write_bash_script(name, data_files, output_path, tool_path, command, which_s
 #$ -e %(output_path)s                         #-- error directory
 #$ -r y                                 #-- tell the system that if a job crashes, it should be restarted
 #$ -j y                                 #-- tell the system that the STDERR and STDOUT should be joined
-#$ -l mem_free=0.5G                       #-- submits on nodes with enough free memory (required)
+#$ -l mem_free=%(mem_req)s                      #-- submits on nodes with enough free memory (required)
 #$ -l arch=linux-x64                    #-- SGE resources (CPU type)
 #$ -l netapp=1G,scratch=1G              #-- SGE resources (home and scratch disks)
 #$ -l h_rt=24:00:00                     #-- runtime limit (see above; this requests 24 hours)
@@ -122,7 +122,8 @@ OUT="%(output_path)s"
 OUTFILE=${input}_trimmed.fastq.gz
 GTF_ANNOT=/netapp/home/dreuxj/hg38/Annotation/genes.gtf
 BWT2_IDX=/netapp/home/dreuxj/hg38/Sequence/Bowtie2Index/genome
-GENOME_DIR = /netapp/home/dreuxj/GRCh38_Gencode24
+GENOME_FASTA=/netapp/home/dreuxj/hg38/Sequence/Bowtie2Index/genome.fa
+GENOME_DIR=/netapp/home/dreuxj/GRCh38_Gencode24/
 
 echo "Job ID is:" $JOB_ID
 echo "SGE Task ID:" $SGE_TASK_ID
@@ -138,7 +139,7 @@ date
 
 qstat -j $JOB_ID
 
-    ''' % {'output_path': output_path, 'task_count': len(data_files), 'data_joined': str.join(' ', data_files),
+    ''' % {'output_path': output_path, 'task_count': len(data_files), 'data_joined': str.join(' ', data_files), 'mem_req': mem_req,
            'tool_path': tool_path, 'which_step': which_step, 'command': command}
 
     print('========================================================================================================\n')
@@ -178,6 +179,9 @@ def run_fastqc(name, input_path, output_path, tools_path):
     sizes = list(map(os.path.getsize, data_files))
     total_size = reduce(operator.add, sizes)
 
+    #how much memory do you need for this job?
+    mem_req = "1G"
+
     # what is your command
     command = "$TOOL $input --outdir=$OUT"
 
@@ -185,7 +189,7 @@ def run_fastqc(name, input_path, output_path, tools_path):
     which_step = 'FASTQC'
 
     # send to bash script function
-    write_bash_script(name, data_files, output_path, fastqc_path, command, which_step)
+    write_bash_script(name, data_files, output_path, mem_req, fastqc_path, command, which_step)
 
 
 def run_fastx_trimmer(name, input_path, output_path, tools_path):
@@ -202,6 +206,9 @@ def run_fastx_trimmer(name, input_path, output_path, tools_path):
     output_path = os.path.join(output_path, 'fastx_trimmer')
     create_path_if_not_exists(output_path)
 
+    #how much memory do you need for this job?
+    mem_req = "1G"
+
     # Compute size of input (can be useful for runtime limits, below).
     sizes = list(map(os.path.getsize, data_files))
     total_size = reduce(operator.add, sizes)
@@ -214,7 +221,7 @@ def run_fastx_trimmer(name, input_path, output_path, tools_path):
     which_step = 'FASTX_TRIMMER'
 
     # send to bash script function
-    write_bash_script(name, data_files, output_path, fastx_trimmer_path, command, which_step)
+    write_bash_script(name, data_files, output_path, mem_req, fastx_trimmer_path, command, which_step)
 
 
 def run_tophat(name, input_path, output_path, tools_path):
@@ -231,6 +238,9 @@ def run_tophat(name, input_path, output_path, tools_path):
     output_path = os.path.join(output_path, 'tophat')
     create_path_if_not_exists(output_path)
 
+    #how much memory do you need for this job?
+    mem_req = "5G"
+
     # Compute size of input (can be useful for runtime limits, below).
     sizes = list(map(os.path.getsize, data_files))
     total_size = reduce(operator.add, sizes)
@@ -243,7 +253,7 @@ def run_tophat(name, input_path, output_path, tools_path):
     which_step = 'TOPHAT'
 
     # send to bash script function
-    write_bash_script(name, data_files, output_path, tophat_path, command, which_step)
+    write_bash_script(name, data_files, output_path, mem_req, tophat_path, command, which_step)
 
 def run_STAR(name, input_path, output_path, tools_path):
     
@@ -256,26 +266,85 @@ def run_STAR(name, input_path, output_path, tools_path):
     assert len(data_files) > 0, "Could not find any -trimmed files in folder %s" % input_path
 
     # Setup the output for this step
-    output_path = os.path.join(output_path, 'STAR')
+    output_path = os.path.join(output_path, 'STAR/scripts/')
     create_path_if_not_exists(output_path)
 
     # Compute size of input (can be useful for runtime limits, below).
     sizes = list(map(os.path.getsize, data_files))
     total_size = reduce(operator.add, sizes)
 
+    #how much memory do you need for this job?
+    mem_req = "30G"
+
     # what is your command
-    command = "$TOOL --genomeDir $GENOME_DIR --readFilesCommand gunzip -c $INPUT --outSAMstrandField intronMotif \
-    --outFilterIntronMotifs RemoveNoncanonicalUnannotated --outFilterType BySJout"
+    #this aligner requires 30G free RAM for the human genome. Request acordingly!
+    command = "$TOOL --genomeDir $GENOME_DIR --readFilesIn $input --readFilesCommand gunzip -c --outSAMstrandField intronMotif \
+    --outFilterIntronMotifs RemoveNoncanonicalUnannotated --outFilterType BySJout --outFileNamePrefix ~/JD1291/STAR/"
 
     #what are you calling this step in the pipeline
     which_step = 'STAR'
 
     # send to bash script function
-    write_bash_script(name, data_files, output_path, star_path, command, which_step)
+    write_bash_script(name, data_files, output_path, mem_req, star_path, command, which_step)
+
+def run_samtools(name, input_path, output_path, tools_path):
+    
+    # Tool found?
+    samtools_path = os.path.join(tools_path, 'samtools/Samtools')
+    assert os.path.isfile(samtools_path), "Could not find samtools at path %s" % samtools_path
+
+    data_files = glob.glob(os.path.join(input_path, '*.sam'))
+    assert len(data_files) > 0, "Could not find any sam files in folder %s" % input_path
+
+    # Setup the output for this step
+    output_path = os.path.join(output_path, 'Samtools')
+    create_path_if_not_exists(output_path)
+
+    # Compute size of input (can be useful for runtime limits, below).
+    sizes = list(map(os.path.getsize, data_files))
+    total_size = reduce(operator.add, sizes)
+
+    #how much memory do you need for this job?
+    mem_req = "2G"
+
+    # what is your command
+    command = "$TOOL view -bS $input -o $OUT/Aligned.bam "
+
+    #what are you calling this step in the pipeline
+    which_step = 'Samtools sam to bam'
+
+    # send to bash script function
+    write_bash_script(name, data_files, output_path, mem_req, samtools_path, command, which_step)
 
 
 def run_cufflinks(name, input_path, output_path, tools_path):
-    pass
+    
+    # Tool found?
+    cufflinks_path = os.path.join(tools_path, 'cufflinks/cufflinks')
+    assert os.path.isfile(cufflinks_path), "Could not find cufflinks at path %s" % cufflinks_path    
+
+    data_files = glob.glob(os.path.join(input_path, '*.sorted.bam'))
+    assert len(data_files) > 0, "Could not find any bam files in folder %s" % input_path
+
+    # Setup the output for this step
+    output_path = os.path.join(output_path, 'Cufflinks')
+    create_path_if_not_exists(output_path)
+
+    # Compute size of input (can be useful for runtime limits, below).
+    sizes = list(map(os.path.getsize, data_files))
+    total_size = reduce(operator.add, sizes)
+
+    #how much memory do you need for this job?
+    mem_req = "15G"
+
+    # what is your command
+    command = "$TOOL -m 42 -vu -G $GTF_ANNOT -b $GENOME_FASTA $input -o $OUT"
+
+    #what are you calling this step in the pipeline
+    which_step = 'Cufflinks'
+
+    # send to bash script function
+    write_bash_script(name, data_files, output_path, mem_req, cufflinks_path, command, which_step)
 
 
 def run_cuffdiff(name, input_path, output_path, tools_path):
@@ -317,7 +386,9 @@ def main(argv=None):
     elif step == 'tophat':
         run_tophat(name, input_path, output_path, tools_path)
     elif step == 'STAR':
-        run_STAR(name, input_path, output_path, tools_path)    
+        run_STAR(name, input_path, output_path, tools_path)
+    elif step == 'samtools':
+        run_samtools(name, input_path, output_path, tools_path)    
     elif step == 'cufflinks':
         run_cufflinks(name, input_path, output_path, tools_path)
     elif step == 'cuffdiff':
