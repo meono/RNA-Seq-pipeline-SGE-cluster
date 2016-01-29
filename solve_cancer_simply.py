@@ -105,15 +105,15 @@ def write_bash_script(name, data_files, output_path, mem_req, tool_path, command
 #!/bin/bash
 #
 #$ -S /bin/bash
-#$ -o %(output_path)s                         #-- output directory
-#$ -e %(output_path)s                         #-- error directory
-#$ -r y                                 #-- tell the system that if a job crashes, it should be restarted
-#$ -j y                                 #-- tell the system that the STDERR and STDOUT should be joined
-#$ -l mem_free=%(mem_req)s                      #-- submits on nodes with enough free memory (required)
-#$ -l arch=linux-x64                    #-- SGE resources (CPU type)
-#$ -l netapp=1G,scratch=1G              #-- SGE resources (home and scratch disks)
-#$ -l h_rt=24:00:00                     #-- runtime limit (see above; this requests 24 hours)
-#$ -t 1-%(task_count)o                  #-- number of tasks if desired (see Tips section)
+#$ -o %(output_path)s                       
+#$ -e %(output_path)s                    
+#$ -r y                                 
+#$ -j y                                 
+#$ -l mem_free=%(mem_req)s                    
+#$ -l arch=linux-x64                    
+#$ -l netapp=1G,scratch=1G              
+#$ -l h_rt=24:00:00                     
+#$ -t 1-%(task_count)o                 
 
 inputs=(0 %(data_joined)s)
 input=${inputs[$SGE_TASK_ID]}
@@ -262,11 +262,11 @@ def run_STAR(name, input_path, output_path, tools_path):
     assert os.path.isfile(star_path), "Could not find STAR at path %s" % star_path
 
     # Trimmed data files found? 
-    data_files = glob.glob(os.path.join(input_path, '*.fastq.gz'))
+    data_files = glob.glob(os.path.join(input_path, '*_trimmed.fastq.gz'))
     assert len(data_files) > 0, "Could not find any -trimmed files in folder %s" % input_path
 
     # Setup the output for this step
-    output_path = os.path.join(output_path, 'STAR/scripts/')
+    output_path = os.path.join(output_path, 'STAR/')
     create_path_if_not_exists(output_path)
 
     # Compute size of input (can be useful for runtime limits, below).
@@ -278,7 +278,7 @@ def run_STAR(name, input_path, output_path, tools_path):
 
     # what is your command
     #this aligner requires 30G free RAM for the human genome. Request acordingly!
-    command = "$TOOL --genomeDir $GENOME_DIR --readFilesIn $input --readFilesCommand gunzip -c --outSAMstrandField intronMotif \
+    command = "$TOOL --runThreadN 12 --genomeDir $GENOME_DIR --readFilesIn $input --readFilesCommand gunzip -c --outSAMstrandField intronMotif \
     --outFilterIntronMotifs RemoveNoncanonicalUnannotated --outFilterType BySJout --outFileNamePrefix ~/JD1291/STAR/"
 
     #what are you calling this step in the pipeline
@@ -324,7 +324,7 @@ def run_cufflinks(name, input_path, output_path, tools_path):
     assert os.path.isfile(cufflinks_path), "Could not find cufflinks at path %s" % cufflinks_path    
 
     data_files = glob.glob(os.path.join(input_path, '*.sorted.bam'))
-    assert len(data_files) > 0, "Could not find any bam files in folder %s" % input_path
+    assert len(data_files) > 0, "Could not find any sorted bam files in folder %s" % input_path
 
     # Setup the output for this step
     output_path = os.path.join(output_path, 'Cufflinks')
