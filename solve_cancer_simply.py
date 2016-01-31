@@ -99,7 +99,7 @@ def invoke_cluster(path):
     print("Success. Cancer solved.")
 
 
-def write_bash_script(name, data_files, output_path, mem_req, tool_path, command, which_step):
+def write_bash_script(name, data_files, output_path, mem_req, tool_path, task_count, command, which_step):
     bash_script = '''
 
 #!/bin/bash
@@ -129,7 +129,6 @@ echo "Job ID is:" $JOB_ID
 echo "SGE Task ID:" $SGE_TASK_ID
 echo "Input for this task: " $input
 echo "Output goes to:" %(output_path)s
-echo "You are using the tool:" %(tool_path)s
 echo "You are at step:" %(which_step)s
 echo "Your command is:" %(command)s
 hostname
@@ -139,7 +138,7 @@ date
 
 qstat -j $JOB_ID
 
-    ''' % {'output_path': output_path, 'task_count': len(data_files), 'data_joined': str.join(' ', data_files), 'mem_req': mem_req,
+    ''' % {'output_path': output_path, 'task_count': task_count, 'data_joined': (str.join(' ', data_files)), 'mem_req': mem_req,
            'tool_path': tool_path, 'which_step': which_step, 'command': command}
 
     print('========================================================================================================\n')
@@ -223,7 +222,6 @@ def run_fastx_trimmer(name, input_path, output_path, tools_path):
     # send to bash script function
     write_bash_script(name, data_files, output_path, mem_req, fastx_trimmer_path, command, which_step)
 
-
 def run_tophat(name, input_path, output_path, tools_path):
     
     # Tool found?
@@ -263,10 +261,11 @@ def run_STAR(name, input_path, output_path, tools_path):
 
     # Trimmed data files found? 
     data_files = glob.glob(os.path.join(input_path, '*_trimmed.fastq.gz'))
+    task_count = len(data_files)
     assert len(data_files) > 0, "Could not find any -trimmed files in folder %s" % input_path
 
     # Setup the output for this step
-    output_path = os.path.join(output_path, 'STAR/')
+    output_path = os.path.join(output_path, 'STAR')
     create_path_if_not_exists(output_path)
 
     # Compute size of input (can be useful for runtime limits, below).
@@ -279,21 +278,22 @@ def run_STAR(name, input_path, output_path, tools_path):
     # what is your command
     #this aligner requires 30G free RAM for the human genome. Request acordingly!
     command = "$TOOL --runThreadN 12 --genomeDir $GENOME_DIR --readFilesIn $input --readFilesCommand gunzip -c --outSAMstrandField intronMotif \
-    --outFilterIntronMotifs RemoveNoncanonicalUnannotated --outFilterType BySJout --outFileNamePrefix ~/JD1291/STAR/"
+    --outFilterIntronMotifs RemoveNoncanonicalUnannotated --outFilterType BySJout --outFileNamePrefix $OUT"
 
     #what are you calling this step in the pipeline
     which_step = 'STAR'
 
     # send to bash script function
-    write_bash_script(name, data_files, output_path, mem_req, star_path, command, which_step)
+    write_bash_script(name, data_files, output_path, mem_req, star_path, task_count, command, which_step)
 
 def run_samtools(name, input_path, output_path, tools_path):
     
     # Tool found?
-    samtools_path = os.path.join(tools_path, 'samtools/Samtools')
+    samtools_path = os.path.join(tools_path, 'samtools/samtools')
     assert os.path.isfile(samtools_path), "Could not find samtools at path %s" % samtools_path
 
     data_files = glob.glob(os.path.join(input_path, '*.sam'))
+    task_count = len(data_files)
     assert len(data_files) > 0, "Could not find any sam files in folder %s" % input_path
 
     # Setup the output for this step
@@ -305,17 +305,76 @@ def run_samtools(name, input_path, output_path, tools_path):
     total_size = reduce(operator.add, sizes)
 
     #how much memory do you need for this job?
-    mem_req = "2G"
+    mem_req = "5G"
 
     # what is your command
     command = "$TOOL view -bS $input -o $OUT/Aligned.bam "
 
     #what are you calling this step in the pipeline
-    which_step = 'Samtools sam to bam'
+    which_step = 'sam_2_bam'
 
     # send to bash script function
-    write_bash_script(name, data_files, output_path, mem_req, samtools_path, command, which_step)
+    write_bash_script(name, data_files, output_path, mem_req, samtools_path, task_count, command, which_step)
 
+def run_samtools_sort(name, input_path, output_path, tools_path):
+    
+    # Tool found?
+    samtools_path = os.path.join(tools_path, 'samtools/samtools')
+    assert os.path.isfile(samtools_path), "Could not find samtools at path %s" % samtools_path
+
+    data_files = glob.glob(os.path.join(input_path, '*.bam'))
+    task_count = len(data_files)
+    assert len(data_files) > 0, "Could not find any bam files in folder %s" % input_path
+
+    # Setup the output for this step
+    output_path = os.path.join(output_path, 'Samtools')
+    create_path_if_not_exists(output_path)
+
+    # Compute size of input (can be useful for runtime limits, below).
+    sizes = list(map(os.path.getsize, data_files))
+    total_size = reduce(operator.add, sizes)
+
+    #how much memory do you need for this job?
+    mem_req = "10G"
+
+    # what is your command
+    command = "$TOOL sort $input -o $OUT/Aligned_sorted.bam"
+
+    #what are you calling this step in the pipeline
+    which_step = 'sam_sort'
+
+    # send to bash script function
+    write_bash_script(name, data_files, output_path, mem_req, samtools_path, task_count, command, which_step)
+
+def run_samtools_idx(name, input_path, output_path, tools_path):
+    
+    # Tool found?
+    samtools_path = os.path.join(tools_path, 'samtools/samtools')
+    assert os.path.isfile(samtools_path), "Could not find samtools at path %s" % samtools_path
+
+    data_files = glob.glob(os.path.join(input_path, '*.sam'))
+    task_count = len(data_files)
+    assert len(data_files) > 0, "Could not find any sam files in folder %s" % input_path
+
+    # Setup the output for this step
+    output_path = os.path.join(output_path, 'Samtools')
+    create_path_if_not_exists(output_path)
+
+    # Compute size of input (can be useful for runtime limits, below).
+    sizes = list(map(os.path.getsize, data_files))
+    total_size = reduce(operator.add, sizes)
+
+    #how much memory do you need for this job?
+    mem_req = "5G"
+
+    # what is your command
+    command = "$TOOL index $input"
+
+    #what are you calling this step in the pipeline
+    which_step = 'sam_sort'
+
+    # send to bash script function
+    write_bash_script(name, data_files, output_path, mem_req, samtools_path, task_count, command, which_step)  
 
 def run_cufflinks(name, input_path, output_path, tools_path):
     
@@ -324,6 +383,7 @@ def run_cufflinks(name, input_path, output_path, tools_path):
     assert os.path.isfile(cufflinks_path), "Could not find cufflinks at path %s" % cufflinks_path    
 
     data_files = glob.glob(os.path.join(input_path, '*.sorted.bam'))
+    task_count =len(data_files)
     assert len(data_files) > 0, "Could not find any sorted bam files in folder %s" % input_path
 
     # Setup the output for this step
@@ -335,24 +395,75 @@ def run_cufflinks(name, input_path, output_path, tools_path):
     total_size = reduce(operator.add, sizes)
 
     #how much memory do you need for this job?
-    mem_req = "15G"
+    mem_req = "50G"
 
     # what is your command
     command = "$TOOL -m 42 -vu -G $GTF_ANNOT -b $GENOME_FASTA $input -o $OUT"
 
     #what are you calling this step in the pipeline
-    which_step = 'Cufflinks'
+    which_step = 'cufflinks'
 
     # send to bash script function
-    write_bash_script(name, data_files, output_path, mem_req, cufflinks_path, command, which_step)
-
+    write_bash_script(name, data_files, output_path, mem_req, cufflinks_path, task_count, command, which_step)
 
 def run_cuffdiff(name, input_path, output_path, tools_path):
-    pass
+    # Tool found?
+    cuffdiff_path = os.path.join(tools_path, 'cufflinks/cuffdiff')
+    assert os.path.isfile(cuffdiff_path), "Could not find cuffdiff at path %s" % cuffdiff_path    
 
+    data_files = glob.glob(os.path.join(input_path, '*.merged.gtf'))
+    task_count =len(data_files)
+    assert len(data_files) > 0, "Could not find any merged gtf files in folder %s" % input_path
+
+    # Setup the output for this step
+    output_path = os.path.join(output_path, 'Cuffdiff')
+    create_path_if_not_exists(output_path)
+
+    # Compute size of input (can be useful for runtime limits, below).
+    sizes = list(map(os.path.getsize, data_files))
+    total_size = reduce(operator.add, sizes)
+
+    #how much memory do you need for this job?
+    mem_req = "20G"
+
+    # what is your command
+    command = "$TOOL -L Rectus, Vastus --b/–frag-bias-correct $GENOME_FASTA  -o $OUT $input $Rectus.bam $Vastus.bam"
+
+    #what are you calling this step in the pipeline
+    which_step = 'cuffdiff'
+
+    # send to bash script function
+    write_bash_script(name, data_files, output_path, mem_req, cuffdiff_path, task_count, command, which_step)
 
 def run_cuffmerge(name, input_path, output_path, tools_path):
-    pass
+    # Tool found?
+    cuffmerge_path = os.path.join(tools_path, 'cufflinks/cuffmerge')
+    assert os.path.isfile(cuffmerge_path), "Could not find cuffmerge at path %s" % cuffmerge_path    
+
+    data_files = glob.glob(os.path.join(input_path, '*.txt'))
+    task_count =len(data_files)
+    assert len(data_files) > 0, "Could not find any sorted assembly list files in folder %s" % input_path
+
+    # Setup the output for this step
+    output_path = os.path.join(output_path, 'Cuffmerge')
+    create_path_if_not_exists(output_path)
+
+    # Compute size of input (can be useful for runtime limits, below).
+    sizes = list(map(os.path.getsize, data_files))
+    total_size = reduce(operator.add, sizes)
+
+    #how much memory do you need for this job?
+    mem_req = "20G"
+
+    # what is your command
+    command = "$TOOL -g $GTF_ANNOT -s $GENOME_FASTA  -o $OUT $input"
+
+    #what are you calling this step in the pipeline
+    which_step = 'cuffmerge'
+
+    # send to bash script function
+    write_bash_script(name, data_files, output_path, mem_req, cuffmerge_path, task_count, command, which_step)
+    
 
 
 def main(argv=None):
@@ -388,7 +499,11 @@ def main(argv=None):
     elif step == 'STAR':
         run_STAR(name, input_path, output_path, tools_path)
     elif step == 'samtools':
-        run_samtools(name, input_path, output_path, tools_path)    
+        run_samtools(name, input_path, output_path, tools_path)
+    elif step == 'samtools_sort':
+        run_samtools_sort(name, input_path, output_path, tools_path)  
+    elif step == 'samtools_idx':
+        run_samtools_idx(name, input_path, output_path, tools_path)        
     elif step == 'cufflinks':
         run_cufflinks(name, input_path, output_path, tools_path)
     elif step == 'cuffdiff':

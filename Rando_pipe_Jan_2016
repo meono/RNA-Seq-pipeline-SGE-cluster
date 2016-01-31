@@ -73,7 +73,8 @@ http://cole-trapnell-lab.github.io/cufflinks/images/tuxedo_workflow.png
 
 /netapp/home/dreuxj/JD1291/FastQC/fastqc `find /netapp/home/dreuxj/JD1291/data/gladstone/150710_D00108_0364_BC6VG3ANXX_Project_gladstone-JD1291/Sample_JD1291-A-bc11-Vastus-pooled/*.gz` --outdir=/netapp/home/dreuxj/results-fastq/
 
-#command for scp here to get htmls back??
+
+
 >Input = raw fastq reads
 >Output = HTML
 
@@ -116,18 +117,18 @@ junctions.BED
 logs					# a dir that contains internal intermediate files
 
 
+3. ALIGNEMENT - BETTER ALTERNATIVE
+---------------------------------------------------------------------------------------------------------------
+STAR aligner - manual: http://labshare.cshl.edu/shares/gingeraslab/www-data/dobin/STAR/STAR.sandbox/doc/STARmanual.pdf
+
+path/to/star --genomeDir path/to/dir --readFilesIn path/to/input/files.gz --readFilesCommand gunzip -c --outSAMstrandField intronMotif --outFilterIntronMotifs RemoveNoncanonicalUnannotated --outFilterType BySJout --outFileNamePrefix ~/JD1291/STAR/"
+
+
 3.b CHECK ALIGNEMENT
 ---------------------------------------------------------------------------------------------------------------
-samtools flagstat <tophat_out>/unmapped.bam > tophat_out/unmapped_flagstat.txt 		#give me some stats
-
->Input: unmapped.bam
->Output: txt
-
-
-samtools index -b <tophatout /accepted_hits.bam> 	# indexto visualize on IGV locally - so need to grab  
-
->Input: accepted_hits.bam
->Output: .bai index 
+samtools view -sB aligned.sam > aligned.bam
+samtools sort aligned.bam <prefix>
+samtools index aligned_sorted.bam > al_sorted.bam.bai
 
 
 bamtools convert -format sam -in accepted_hits.*.bam -out accepted_hits.*.sam #convert to sam format for cuff input
