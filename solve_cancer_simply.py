@@ -124,6 +124,9 @@ GTF_ANNOT=/netapp/home/dreuxj/hg38/Annotation/genes.gtf
 BWT2_IDX=/netapp/home/dreuxj/hg38/Sequence/Bowtie2Index/genome
 GENOME_FASTA=/netapp/home/dreuxj/hg38/Sequence/Bowtie2Index/genome.fa
 GENOME_DIR=/netapp/home/dreuxj/GRCh38_Gencode24/
+RECTUS_BAM=/netapp/home/dreuxj/JD1291/Samtools/Rectus/Aligned_rectus.sorted.bam
+VASTUS_BAM=/netapp/home/dreuxj/JD1291/Samtools/Vastus/Aligned_vastus.sorted.bam
+MERGED=/netapp/home/dreux/JD1291/Cuffmerge/merged.gtf
 
 echo "Job ID is:" $JOB_ID
 echo "SGE Task ID:" $SGE_TASK_ID
@@ -352,7 +355,7 @@ def run_samtools_idx(name, input_path, output_path, tools_path):
     samtools_path = os.path.join(tools_path, 'samtools/samtools')
     assert os.path.isfile(samtools_path), "Could not find samtools at path %s" % samtools_path
 
-    data_files = glob.glob(os.path.join(input_path, '*.sam'))
+    data_files = glob.glob(os.path.join(input_path, '*.bam'))
     task_count = len(data_files)
     assert len(data_files) > 0, "Could not find any sam files in folder %s" % input_path
 
@@ -371,10 +374,41 @@ def run_samtools_idx(name, input_path, output_path, tools_path):
     command = "$TOOL index $input"
 
     #what are you calling this step in the pipeline
-    which_step = 'sam_sort'
+    which_step = 'sam_idx'
 
     # send to bash script function
     write_bash_script(name, data_files, output_path, mem_req, samtools_path, task_count, command, which_step)  
+
+def run_samtools_stats(name, input_path, output_path, tools_path):
+    
+    # Tool found?
+    samtools_path = os.path.join(tools_path, 'samtools/samtools')
+    assert os.path.isfile(samtools_path), "Could not find samtools at path %s" % samtools_path
+
+    data_files = glob.glob(os.path.join(input_path, '*.bam'))
+    task_count = len(data_files)
+    assert len(data_files) > 0, "Could not find any sam files in folder %s" % input_path
+
+    # Setup the output for this step
+    output_path = os.path.join(output_path, 'Samtools')
+    create_path_if_not_exists(output_path)
+
+    # Compute size of input (can be useful for runtime limits, below).
+    sizes = list(map(os.path.getsize, data_files))
+    total_size = reduce(operator.add, sizes)
+
+    #how much memory do you need for this job?
+    mem_req = "5G"
+
+    # what is your command
+    command = "$TOOL flagstat $input > flagstats\
+                $TOOL idxstats $input > idxstats "
+
+    #what are you calling this step in the pipeline
+    which_step = 'sam_stats'
+
+    # send to bash script function
+    write_bash_script(name, data_files, output_path, mem_req, samtools_path, task_count, command, which_step)      
 
 def run_cufflinks(name, input_path, output_path, tools_path):
     
@@ -408,12 +442,12 @@ def run_cufflinks(name, input_path, output_path, tools_path):
 
 def run_cuffdiff(name, input_path, output_path, tools_path):
     # Tool found?
-    cuffdiff_path = os.path.join(tools_path, 'cufflinks/cuffdiff')
+    cuffdiff_path = os.path.join('/netapp/home/dreuxj/bin', '/cuffdiff')
     assert os.path.isfile(cuffdiff_path), "Could not find cuffdiff at path %s" % cuffdiff_path    
 
-    data_files = glob.glob(os.path.join(input_path, '*.merged.gtf'))
-    task_count =len(data_files)
-    assert len(data_files) > 0, "Could not find any merged gtf files in folder %s" % input_path
+    data_files = glob.glob(os.path.join(input_path, '*.bam'))
+    task_count =1
+    assert len(data_files) > 0, "Could not find any bam files in folder %s" % input_path
 
     # Setup the output for this step
     output_path = os.path.join(output_path, 'Cuffdiff')
@@ -424,10 +458,10 @@ def run_cuffdiff(name, input_path, output_path, tools_path):
     total_size = reduce(operator.add, sizes)
 
     #how much memory do you need for this job?
-    mem_req = "20G"
+    mem_req = "30G"
 
     # what is your command
-    command = "$TOOL -L Rectus, Vastus --b/–frag-bias-correct $GENOME_FASTA  -o $OUT $input $Rectus.bam $Vastus.bam"
+    command ="cuffdiff -v -b /netapp/home/dreuxj/hg38/Sequence/Bowtie2Index/genome.fa -o /netapp/home/dreuxj/JD1291/ /netapp/home/dreuxj/JD1291/6_Cuffmerge/merged.gtf /netapp/home/dreuxj/JD1291/4.b_samtools/Aligned_rectus.sorted.bam /netapp/home/dreuxj/JD1291/4.b_samtools/Aligned_vastus.sorted.bam"
 
     #what are you calling this step in the pipeline
     which_step = 'cuffdiff'
@@ -463,7 +497,90 @@ def run_cuffmerge(name, input_path, output_path, tools_path):
 
     # send to bash script function
     write_bash_script(name, data_files, output_path, mem_req, cuffmerge_path, task_count, command, which_step)
+
+def run_samtools_back(name, input_path, output_path, tools_path):
     
+    # Tool found?
+    samtools_path = os.path.join(tools_path, 'samtools/samtools')
+    assert os.path.isfile(samtools_path), "Could not find samtools at path %s" % samtools_path
+
+    data_files = glob.glob(os.path.join(input_path, '*.bam'))
+    task_count = len(data_files)
+    assert len(data_files) > 0, "Could not find any sam files in folder %s" % input_path
+
+    # Setup the output for this step
+    output_path = os.path.join(output_path, 'Samtools')
+    create_path_if_not_exists(output_path)
+
+    # Compute size of input (can be useful for runtime limits, below).
+    sizes = list(map(os.path.getsize, data_files))
+    total_size = reduce(operator.add, sizes)
+
+    #how much memory do you need for this job?
+    mem_req = "10G"
+
+    # what is your command
+    command = "$TOOL view -h $input -o $OUT/back2.sam "
+
+    #what are you calling this step in the pipeline
+    which_step = 'bam_2_sam'
+
+    # send to bash script function
+    write_bash_script(name, data_files, output_path, mem_req, samtools_path, task_count, command, which_step)
+
+
+def run_htseq(name, input_path, output_path, tools_path):
+
+    # Tool found?
+    htseq_path = os.path.join(tools_path, 'htseq/scripts/htseq-count')
+    assert os.path.isfile(htseq_path), "Could not find htseq at path %s" % htseq_path
+
+    data_files = glob.glob(os.path.join(input_path, '*.bam'))
+    task_count = len(data_files)
+    assert len(data_files) > 0, "Could not find any sam files in folder %s" % input_path
+
+    # Setup the output for this step
+    output_path = os.path.join(output_path, 'htseq')
+    create_path_if_not_exists(output_path)
+
+    #how much memory do you need for this job?
+    mem_req = "3G"
+
+    # what is your command
+    command = "$TOOL -f bam $input $GTF_ANNOT -o $OUT "
+
+    #what are you calling this step in the pipeline
+    which_step = 'htseq-count'
+
+    # send to bash script function
+    write_bash_script(name, data_files, output_path, mem_req, htseq_path, task_count, command, which_step)
+
+def run_htseq2(name, input_path, output_path, tools_path):
+
+    # Tool found?
+    htseq_path = os.path.join(tools_path, 'htseq/scripts/htseq-count')
+    assert os.path.isfile(htseq_path), "Could not find htseq at path %s" % htseq_path
+
+    data_files = glob.glob(os.path.join(input_path, '*.bam'))
+    task_count = len(data_files)
+    assert len(data_files) > 0, "Could not find any sam files in folder %s" % input_path
+
+    # Setup the output for this step
+    output_path = os.path.join(output_path, 'htseq2')
+    create_path_if_not_exists(output_path)
+
+    #how much memory do you need for this job?
+    mem_req = "3G"
+
+    # what is your command
+    command = "python -m HTseq.scripts.count -f bam -s reverse -r pos $input $GTF_ANNOT -o $OUT "
+
+    #what are you calling this step in the pipeline
+    which_step = 'htseq-count'
+
+    # send to bash script function
+    write_bash_script(name, data_files, output_path, mem_req, htseq_path, task_count, command, which_step)
+
 
 
 def main(argv=None):
@@ -500,16 +617,24 @@ def main(argv=None):
         run_STAR(name, input_path, output_path, tools_path)
     elif step == 'samtools':
         run_samtools(name, input_path, output_path, tools_path)
+    elif step == 'samtools_back':
+        run_samtools_back(name, input_path, output_path, tools_path)
     elif step == 'samtools_sort':
         run_samtools_sort(name, input_path, output_path, tools_path)  
     elif step == 'samtools_idx':
-        run_samtools_idx(name, input_path, output_path, tools_path)        
+        run_samtools_idx(name, input_path, output_path, tools_path) 
+    elif step == 'samtools_stats':
+        run_samtools_stats(name, input_path, output_path, tools_path)         
     elif step == 'cufflinks':
         run_cufflinks(name, input_path, output_path, tools_path)
     elif step == 'cuffdiff':
         run_cuffdiff(name, input_path, output_path, tools_path)
     elif step == 'cuffmerge':
         run_cuffmerge(name, input_path, output_path, tools_path)
+    elif step == 'htseq1':
+        run_htseq(name, input_path, output_path, tools_path)
+    elif step == 'htseq2':
+        run_htseq2(name, input_path, output_path, tools_path)
     else:
         LOG.error('Did not understand step "%s". Possible values are fastqc, trimmer, tophat, STAR, cufflinks, cuffdiff, and\
                   cuffmerge. Run aborted.' % step)

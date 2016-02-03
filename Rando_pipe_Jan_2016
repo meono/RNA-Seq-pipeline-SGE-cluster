@@ -136,6 +136,9 @@ bamtools convert -format sam -in accepted_hits.*.bam -out accepted_hits.*.sam #c
 >Input: accepted_hits.bam
 >Output: accepted_hits.sam
 
+samtools flagstat <.bam>
+samtools idxstats <.bam>
+
 
 
 4. CUFFLINKS
