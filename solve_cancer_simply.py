@@ -99,7 +99,7 @@ def invoke_cluster(path):
     print("Success. Cancer solved.")
 
 
-def write_bash_script(name, data_files, output_path, mem_req, tool_path, task_count, command, which_step):
+def write_bash_script(name, data_files, output_path, mem_req, task_count, command, which_step):
     bash_script = '''
 
 #!/bin/bash
@@ -117,16 +117,9 @@ def write_bash_script(name, data_files, output_path, mem_req, tool_path, task_co
 
 inputs=(0 %(data_joined)s)
 input=${inputs[$SGE_TASK_ID]}
-TOOL="%(tool_path)s"
+
 OUT="%(output_path)s"
 OUTFILE=${input}_trimmed.fastq.gz
-GTF_ANNOT=/netapp/home/dreuxj/hg38/Annotation/genes.gtf
-BWT2_IDX=/netapp/home/dreuxj/hg38/Sequence/Bowtie2Index/genome
-GENOME_FASTA=/netapp/home/dreuxj/hg38/Sequence/Bowtie2Index/genome.fa
-GENOME_DIR=/netapp/home/dreuxj/GRCh38_Gencode24/
-RECTUS_BAM=/netapp/home/dreuxj/JD1291/Samtools/Rectus/Aligned_rectus.sorted.bam
-VASTUS_BAM=/netapp/home/dreuxj/JD1291/Samtools/Vastus/Aligned_vastus.sorted.bam
-MERGED=/netapp/home/dreux/JD1291/Cuffmerge/merged.gtf
 
 echo "Job ID is:" $JOB_ID
 echo "SGE Task ID:" $SGE_TASK_ID
@@ -141,8 +134,8 @@ date
 
 qstat -j $JOB_ID
 
-    ''' % {'output_path': output_path, 'task_count': task_count, 'data_joined': (str.join(' ', data_files)), 'mem_req': mem_req,
-           'tool_path': tool_path, 'which_step': which_step, 'command': command}
+    ''' % {'output_path': output_path, 'data_joined': (str.join(' ', data_files)), 'mem_req': mem_req,
+        'task_count': task_count, 'which_step': which_step, 'command': command}
 
     print('========================================================================================================\n')
     print(bash_script)
@@ -165,12 +158,11 @@ qstat -j $JOB_ID
 def run_fastqc(name, input_path, output_path, tools_path):
     print('Setting up fastqc analysis...')
 
-    # Fast qc found?
-    fastqc_path = os.path.join(tools_path, 'FastQC/fastqc')
-    assert os.path.isfile(fastqc_path), "Could not find fastqc at path %s" % fastqc_path
+
 
     # Data files found?
     data_files = glob.glob(os.path.join(input_path, '*.gz'))
+    task_count = len(data_files)
     assert len(data_files) > 0, "Could not find any .gz files in folder %s" % input_path
 
     # Setup the output for this step
@@ -191,39 +183,33 @@ def run_fastqc(name, input_path, output_path, tools_path):
     which_step = 'FASTQC'
 
     # send to bash script function
-    write_bash_script(name, data_files, output_path, mem_req, fastqc_path, command, which_step)
+    write_bash_script(name, data_files, output_path, mem_req, fastqc_path, task_count, command, which_step)
 
 
 def run_fastx_trimmer(name, input_path, output_path, tools_path):
    
-    # Tool found?
-    fastx_trimmer_path = os.path.join(tools_path, 'fastx_toolkit/fastx_trimmer')
-    assert os.path.isfile(fastx_trimmer_path), "Could not find trimmer at path %s" % fastx_trimmer_path
-
     # Data files found?
     data_files = glob.glob(os.path.join(input_path, '*.gz'))
-    assert len(data_files) > 0, "Could not find any .gz files in folder %s" % input_path
+    task_count = len(data_files)
+    assert task_count > 0, "Could not find any .gz files in folder %s" % input_path
 
     # Setup the output for this step
-    output_path = os.path.join(output_path, 'fastx_trimmer')
+    output_path = os.path.join(output_path, '2.fastx_trimmer')
     create_path_if_not_exists(output_path)
 
     #how much memory do you need for this job?
-    mem_req = "1G"
+    mem_req = "5G"
 
-    # Compute size of input (can be useful for runtime limits, below).
-    sizes = list(map(os.path.getsize, data_files))
-    total_size = reduce(operator.add, sizes)
 
     # need to unzip files for this to run.
     # what is your command
-    command = "gzip -cd $input | $TOOL -f10 -Q33 | gzip -c > $OUTFILE"
+    command = "gzip -cd $input | fastx_trimmer -f10 -Q33 | gzip -c > $OUTFILE"
 
     #what are you calling this step in the pipeline
     which_step = 'FASTX_TRIMMER'
 
     # send to bash script function
-    write_bash_script(name, data_files, output_path, mem_req, fastx_trimmer_path, command, which_step)
+    write_bash_script(name, data_files, output_path, mem_req, task_count, command, which_step)
 
 def run_tophat(name, input_path, output_path, tools_path):
     
@@ -528,7 +514,6 @@ def run_samtools_back(name, input_path, output_path, tools_path):
     # send to bash script function
     write_bash_script(name, data_files, output_path, mem_req, samtools_path, task_count, command, which_step)
 
-
 def run_htseq(name, input_path, output_path, tools_path):
 
     # Tool found?
@@ -580,7 +565,6 @@ def run_htseq2(name, input_path, output_path, tools_path):
 
     # send to bash script function
     write_bash_script(name, data_files, output_path, mem_req, htseq_path, task_count, command, which_step)
-
 
 
 def main(argv=None):

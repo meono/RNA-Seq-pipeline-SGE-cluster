@@ -87,52 +87,49 @@ def invoke_cluster(path):
     print("Running jobs on cluster with command 'qsub %s'. FOR SCIENCE!" % path)
     os.chmod(path, 0o755)
     os.system("qsub %s" % path)
-    print("Success. Cancer 2.0 solved.")
+    print("Success.")
 
 
 def write_bash_script(name, data_files, output_path, mem_req, time_req, task_count, command, step):
+
     bash_script = '''
 
 #!/bin/bash
 #
 #$ -S /bin/bash
-#$ -o {output_path:s}
-#$ -e {output_path:s}
+#$ -o %(output_path)s
+#$ -e %(output_path)s
 #$ -r y
 #$ -j y
-#$ -l mem_free={mem_req:s}
+#$ -l mem_free=%(mem_req)s
 #$ -l arch=linux-x64
 #$ -l netapp=2G,scratch=5G
-#$ -l h_rt={time_req:o}
-#$ -t 1-{task_count:o}
+#$ -l h_rt=%(time_req)s
+#$ -t 1-%(task_count)s
 
-inputs=(0 {data_joined:s})
-input=${{inputs[$SGE_TASK_ID]}}
-
-
+inputs=(0 %(data_joined)s)
+input=${inputs[$SGE_TASK_ID]}
 
 echo '======================================================================================================='
 echo "Job ID is:" $JOB_ID
 echo "SGE Task ID:" $SGE_TASK_ID
 echo '======================================================================================================='
 echo "Input for this task: " $input
-echo "Output goes to:" {output_path:s}
-echo "You are at step:" {step:s}
-echo "Your command is:" {command:s}
+echo "Output goes to:" %(output_path)s
+echo "You are at step:" %(step)s
 echo '======================================================================================================='
 
 hostname
 date
 
-{command:s}
+%(command)s
 
 date
 
 qstat -j $JOB_ID
 
-    '''.format(**{'output_path': output_path, 'task_count': task_count, 'data_joined': str.join(' ', data_files),
-                  'mem_req': mem_req,
-                  'time_req': time_req, 'step': step, 'command': command})
+    ''' % {'output_path': output_path, 'task_count': task_count, 'data_joined': str.join(' ', data_files),
+                  'mem_req': mem_req,'time_req': time_req, 'step': step, 'command': command}
 
     print('========================================================================================================\n')
     print(bash_script)
@@ -143,7 +140,7 @@ qstat -j $JOB_ID
         print('K, bye Felicia!')
         return
 
-    bash_path = os.path.join(output_path, name+'_'+step+'_'+'_script.sh')
+    bash_path = os.path.join(output_path, name+'_'+'script.sh')
 
     text_file = open(bash_path, "w")
     text_file.write(bash_script)
@@ -151,20 +148,19 @@ qstat -j $JOB_ID
 
     invoke_cluster(bash_path)
 
-base_path="/netapp/home/dreuxj/"
-
 def run_fastqc(name, input_path, output_path, step):
 
     data_files = glob.glob(os.path.join(input_path, '*.fastq.gz'))
-    task_count=len(data_files)
-    assert task_count> 0, "Could not find any FASTQ .gz files in folder %s" % input_path
+    task_count= len(data_files)
+    print (task_count)
+    assert task_count > 0, "Could not find any FASTQ .gz files in folder %s" % input_path
 
-    output_path = os.path.join(output_path, '1.Fastqc')
+    output_path = os.path.join(output_path, '1.FASTQC')
     create_path_if_not_exists(output_path)
 
     mem_req = "5G"
     time_req ="05:00:00"
-    command = "fastqc $input --outdir={output_path:s}"
+    command = "OUT='%(output_path)s';fastqc $input --outdir=$OUT"
 
     write_bash_script(name, data_files, output_path, mem_req, time_req, task_count, command, step)
 
@@ -174,7 +170,7 @@ def run_fastx_trimmer(name, input_path, output_path, step):
     task_count=len(data_files)
     assert task_count > 0, "Could not find any .gz files in folder %s" % input_path
 
-    output_path = os.path.join(output_path, '2.fastx_trimmer')
+    output_path = os.path.join(output_path, '2.FASTX')
     create_path_if_not_exists(output_path)
 
     mem_req = "10G"
@@ -185,38 +181,54 @@ def run_fastx_trimmer(name, input_path, output_path, step):
 
 def run_star(name, input_path, output_path, step):
 
-    data_files = glob.glob(os.path.join(input_path, '*.fastq.gz'))
-    task_count = len(data_files)
-    assert task_count > 0, "Could not find any fastq files in folder %s" % input_path
+    paired_end=raw_input("Are your reads paired-end (multiple input)? And are they in their own separate folder? [y/n]")
+
+    if paired_end.lower() =="y":
+        print("Ok, setting up for paired input...")
+        data_files = glob.glob(os.path.join(input_path, '*.fastq.gz'))
+        task_count = 1
+        assert len(data_files) > 1, "Could not find more than one fastq file in folder %s" % input_path
+
+        command = "STAR --genomeDir /netapp/home/dreuxj/GRCh38_Gencode24/ --readFilesIn $input \
+    --readFilesCommand gunzip -c --outSAMstrandField intronMotif --outFilterIntronMotifs RemoveNoncanonicalUnannotated\
+     --outFilterType BySJout --outFileNamePrefix %(output_path)s/${input}"
+
+
+    elif paired_end.lower() != "y":
+        print("Ok let's set up for SE run")
+        data_files = glob.glob(os.path.join(input_path, '*.fastq.gz'))
+        task_count = len(data_files)
+        assert task_count > 0, "Could not find any fastq files in folder %s" % input_path
+
+        command = "STAR --genomeDir /netapp/home/dreuxj/GRCh38_Gencode24/ --readFilesIn $input \
+    --readFilesCommand gunzip -c --outSAMstrandField intronMotif --outFilterIntronMotifs RemoveNoncanonicalUnannotated\
+     --outFilterType BySJout --outFileNamePrefix %(output_path)s/${input}"
 
     output_path = os.path.join(output_path, '3.STAR')
     create_path_if_not_exists(output_path)
 
+    mem_req = "32G"
+    time_req="99:00:00"
 
-    mem_req = "30G"
-    time_req="48:00:00"
-    command = "STAR --runThreadN 12 --genomeDir /netapp/home/dreuxj/GRCh38_Gencode24/ --readFilesIn $input \
-    --readFilesCommand gunzip -c --outSAMstrandField intronMotif --outFilterIntronMotifs RemoveNoncanonicalUnannotated\
-     --outFilterType BySJout --outFileNamePrefix {output_path:s}/${input}"
 
     write_bash_script(name, data_files, output_path, mem_req, time_req, task_count, command, step)
 
 def run_samtools(name, input_path, output_path, step):
 
-    output_path = os.path.join(output_path,step)
+    output_path = os.path.join(output_path, '4.SAMTOOLS')
     create_path_if_not_exists(output_path)
 
     data_files = glob.glob(os.path.join(input_path, '*.bam'))
     task_count = len(data_files)
     assert task_count > 0, "Could not find any bam files in folder %s" % input_path
 
-    time_req="20:00:00"
+    time_req="48:00:00"
     mem_req="10G"
 
     if step == "samtools_view":
             
         data_files = glob.glob(os.path.join(input_path, '*.sam'))
-        command = "samtools view -bS $input -o $OUTPUT/${input}.aligned.bam "
+        command = "samtools view -bS $input -o %(output_path)s/${input}.aligned.bam "
         write_bash_script(name, data_files, output_path, mem_req, time_req, task_count, command, step)
 
     elif step == "samtools_sort":
@@ -237,7 +249,6 @@ def run_samtools(name, input_path, output_path, step):
 
     else:
         print("Can't match step to function, run aborted")
-
 
 def run_cufflinks_suite(name, input_path, output_path, step):
 
@@ -280,7 +291,6 @@ def run_cufflinks_suite(name, input_path, output_path, step):
 
     write_bash_script(name, data_files, output_path, mem_req, task_count, command, step)
 
-
 def main(argv=None):
     """Program wrapper
     :param argv:
@@ -311,17 +321,21 @@ def main(argv=None):
     elif step == 'star':
         run_star(name, input_path, output_path, step)
     elif step == 'samtools_view' or step =='samtools_sort' or step=='samtools_idx' or step=='samtools_stats':
-        run_samtools(name, step, input_path, output_path, step)
+        run_samtools(name, input_path, output_path, step)
     elif step == 'cuffdiff'or step =='cufflinks' or step=='cuffmerge':
         run_cufflinks_suite(name, input_path, output_path, step)
 
     else:
-        LOG.error('Did not understand step "%s". Possible values are fastqc, fastx, STAR, Samtools_*, cuff*, cuffdiff.\
+        LOG.error('Did not understand step "%s". Possible values are as follows:\
+         fastqc\
+         fastx\
+         star\
+         samtools_view, samtools_sort, samtools_idx, samtools_stats\
+         cuffdiff, cufflinks, cuffmerge\
          Run aborted.' % step)
         return 1
 
     return 0
-
 
 if __name__ == '__main__':
     import doctest
