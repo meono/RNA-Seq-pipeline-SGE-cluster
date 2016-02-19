@@ -109,6 +109,7 @@ def write_bash_script(name, data_files, output_path, mem_req, time_req, task_cou
 
 inputs=(0 %(data_joined)s)
 input=${inputs[$SGE_TASK_ID]}
+OUT="%(output_path)s"
 
 echo '======================================================================================================='
 echo "Job ID is:" $JOB_ID
@@ -160,7 +161,7 @@ def run_fastqc(name, input_path, output_path, step):
 
     mem_req = "5G"
     time_req ="05:00:00"
-    command = "OUT='%(output_path)s';fastqc $input --outdir=$OUT"
+    command = 'fastqc $input --outdir=$OUT'
 
     write_bash_script(name, data_files, output_path, mem_req, time_req, task_count, command, step)
 
@@ -181,28 +182,17 @@ def run_fastx_trimmer(name, input_path, output_path, step):
 
 def run_star(name, input_path, output_path, step):
 
-    paired_end=raw_input("Are your reads paired-end (multiple input)? And are they in their own separate folder? [y/n]")
+#might want to find a better way to deal with paired or SE reads?
 
-    if paired_end.lower() =="y":
-        print("Ok, setting up for paired input...")
-        data_files = glob.glob(os.path.join(input_path, '*.fastq.gz'))
-        task_count = 1
-        assert len(data_files) > 1, "Could not find more than one fastq file in folder %s" % input_path
+    data_files = glob.glob(os.path.join(input_path, '*.fastq.gz'))
+    task_count = 1
+    assert len(data_files) > 0, "Could not find any fastq files in folder %s" % input_path
 
-        command = "STAR --genomeDir /netapp/home/dreuxj/GRCh38_Gencode24/ --readFilesIn $input \
+    command = 'STAR --genomeDir /netapp/home/dreuxj/GRCh38_Gencode24/ --readFilesIn\
+     /netapp/home/dreuxj/rando/Quiescent_1.P1.fastq.gz_trimmed.fastq.gz\
+     /netapp/home/dreuxj/rando/Quiescent_1.P2.fastq.gz_trimmed.fastq.gz \
     --readFilesCommand gunzip -c --outSAMstrandField intronMotif --outFilterIntronMotifs RemoveNoncanonicalUnannotated\
-     --outFilterType BySJout --outFileNamePrefix %(output_path)s/${input}"
-
-
-    elif paired_end.lower() != "y":
-        print("Ok let's set up for SE run")
-        data_files = glob.glob(os.path.join(input_path, '*.fastq.gz'))
-        task_count = len(data_files)
-        assert task_count > 0, "Could not find any fastq files in folder %s" % input_path
-
-        command = "STAR --genomeDir /netapp/home/dreuxj/GRCh38_Gencode24/ --readFilesIn $input \
-    --readFilesCommand gunzip -c --outSAMstrandField intronMotif --outFilterIntronMotifs RemoveNoncanonicalUnannotated\
-     --outFilterType BySJout --outFileNamePrefix %(output_path)s/${input}"
+     --outFilterType BySJout --outFileNamePrefix $OUT/'
 
     output_path = os.path.join(output_path, '3.STAR')
     create_path_if_not_exists(output_path)
@@ -214,13 +204,11 @@ def run_star(name, input_path, output_path, step):
     write_bash_script(name, data_files, output_path, mem_req, time_req, task_count, command, step)
 
 def run_samtools(name, input_path, output_path, step):
+# samtools is installed on the cluster for all users but it's an older version
+# - need to ref whole path for my more recent version
 
     output_path = os.path.join(output_path, '4.SAMTOOLS')
     create_path_if_not_exists(output_path)
-
-    data_files = glob.glob(os.path.join(input_path, '*.bam'))
-    task_count = len(data_files)
-    assert task_count > 0, "Could not find any bam files in folder %s" % input_path
 
     time_req="48:00:00"
     mem_req="10G"
@@ -228,27 +216,49 @@ def run_samtools(name, input_path, output_path, step):
     if step == "samtools_view":
             
         data_files = glob.glob(os.path.join(input_path, '*.sam'))
-        command = "samtools view -bS $input -o %(output_path)s/${input}.aligned.bam "
-        write_bash_script(name, data_files, output_path, mem_req, time_req, task_count, command, step)
+        command = "/netapp/home/dreuxj/bin/samtools view -b $input -o $OUT/aligned.bam "
 
     elif step == "samtools_sort":
 
-        command = "samtools sort $input -o $OUTPUT/${input}.sorted.bam"
-        write_bash_script(name, data_files, output_path, mem_req, time_req, task_count, command, step)
+        data_files = glob.glob(os.path.join(input_path, '*.bam'))
+        command = "/netapp/home/dreuxj/bin/samtools sort -o $OUT/aligned.sorted.bam -T sorting_this $input"
 
     elif step == "samtools_idx":
 
-        command = "samtools index $input"
-        write_bash_script(name, data_files, output_path, mem_req, time_req, task_count, command, step)
+        data_files = glob.glob(os.path.join(input_path, '*.bam'))
+        command = "/netapp/home/dreuxj/bin/samtools index $input"
 
     elif step == "samtools_stats":
 
-        command = "samtools flagstat $input > ${input}_flagstats"
-        "samtools idxstats $input > ${input}_idxstats"
-        write_bash_script(name, data_files, output_path, mem_req, time_req, task_count, command, step)
+        data_files = glob.glob(os.path.join(input_path, '*.bam'))
+        command = "/netapp/home/dreuxj/bin/samtools flagstat $input > ${input}_flagstats;\
+         /netapp/home/dreuxj/bin/samtools idxstats $input > ${input}_idxstats"
 
     else:
         print("Can't match step to function, run aborted")
+
+    task_count = len(data_files)
+    assert task_count > 0, "Could not find any bam files in folder %s" % input_path
+    write_bash_script(name, data_files, output_path, mem_req, time_req, task_count, command, step)
+
+def run_htseq(name, input_path, output_path, step):
+
+
+    data_files = glob.glob(os.path.join(input_path, '*.sorted.bam'))
+    task_count =len(data_files)
+    assert task_count > 0, "Could not find any sorted bam files in folder %s" % input_path
+
+    command = 'python -m HTSeq.scripts.count -f bam -r pos $input\
+     /netapp/home/dreuxj/GRCh38_Gencode24/gencode.v24.primary_assembly.annotation.gtf'
+
+    output_path = os.path.join(output_path, '5.HTSEQ')
+    create_path_if_not_exists(output_path)
+
+    mem_req = "5G"
+    time_req="24:00:00"
+
+
+    write_bash_script(name, data_files, output_path, mem_req, time_req, task_count, command, step)
 
 def run_cufflinks_suite(name, input_path, output_path, step):
 
@@ -322,15 +332,15 @@ def main(argv=None):
         run_star(name, input_path, output_path, step)
     elif step == 'samtools_view' or step =='samtools_sort' or step=='samtools_idx' or step=='samtools_stats':
         run_samtools(name, input_path, output_path, step)
+    elif step == 'htseq':
+        run_htseq(name, input_path, output_path, step)
     elif step == 'cuffdiff'or step =='cufflinks' or step=='cuffmerge':
         run_cufflinks_suite(name, input_path, output_path, step)
 
     else:
         LOG.error('Did not understand step "%s". Possible values are as follows:\
-         fastqc\
-         fastx\
-         star\
-         samtools_view, samtools_sort, samtools_idx, samtools_stats\
+         fastqc, fastx, star, htseq,\
+         samtools_view, samtools_sort, samtools_idx, samtools_stats,\
          cuffdiff, cufflinks, cuffmerge\
          Run aborted.' % step)
         return 1
