@@ -188,9 +188,9 @@ def run_star(name, input_path, output_path, step):
     task_count = 1
     assert len(data_files) > 0, "Could not find any fastq files in folder %s" % input_path
 
-    command = 'STAR --genomeDir /netapp/home/dreuxj/GRCh38_Gencode24/ --readFilesIn\
-     /netapp/home/dreuxj/rando/Quiescent_1.P1.fastq.gz_trimmed.fastq.gz\
-     /netapp/home/dreuxj/rando/Quiescent_1.P2.fastq.gz_trimmed.fastq.gz \
+    command = 'STAR --genomeDir /netapp/home/dreuxj/Annotation/GRCh38_Gencode24/ --readFilesIn\
+     /netapp/home/dreuxj/rando/Quiescent2/Quiescent2_P1.fastq.gz_trimmed.fastq.gz\
+     /netapp/home/dreuxj/rando/Quiescent2/Quiescent2_P2.fastq.gz_trimmed.fastq.gz \
     --readFilesCommand gunzip -c --outSAMstrandField intronMotif --outFilterIntronMotifs RemoveNoncanonicalUnannotated\
      --outFilterType BySJout --outFileNamePrefix $OUT/'
 
@@ -242,14 +242,14 @@ def run_samtools(name, input_path, output_path, step):
     write_bash_script(name, data_files, output_path, mem_req, time_req, task_count, command, step)
 
 def run_htseq(name, input_path, output_path, step):
-
+#here think carefully about strand settings - use IGV if needed (not on all reads)
 
     data_files = glob.glob(os.path.join(input_path, '*.sorted.bam'))
     task_count =len(data_files)
     assert task_count > 0, "Could not find any sorted bam files in folder %s" % input_path
 
-    command = 'python -m HTSeq.scripts.count -f bam -r pos $input\
-     /netapp/home/dreuxj/GRCh38_Gencode24/gencode.v24.primary_assembly.annotation.gtf'
+    command = 'python -m HTSeq.scripts.count -f bam -r pos -i gene_name -q -s no $input\
+     /netapp/home/dreuxj/Annotation/GRCh38_Gencode24/gencode.v24.primary_assembly.annotation.gtf'
 
     output_path = os.path.join(output_path, '5.HTSEQ')
     create_path_if_not_exists(output_path)
@@ -272,7 +272,7 @@ def run_cufflinks_suite(name, input_path, output_path, step):
 
         data_files = glob.glob(os.path.join(input_path, '*.sorted.bam'))
         mem_req = "30G"
-        command = "GTF_ANNOT=/netapp/home/dreuxj/hg38/Annotation/genes.gtf" \
+        command = "GTF_ANNOT=/netapp/home/dreuxj/Annotation/hg38/Annotation/genes.gtf" \
                   "GENOME_FASTA=/netapp/home/dreuxj/hg38/Sequence/Bowtie2Index/genome.fa" \
                   "cufflinks -m 42 -u -G $GTF_ANNOT -b $GENOME_FASTA $input -o $OUT"
 
