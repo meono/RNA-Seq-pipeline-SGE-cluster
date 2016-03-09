@@ -189,8 +189,8 @@ def run_star(name, input_path, output_path, step):
     assert len(data_files) > 0, "Could not find any fastq files in folder %s" % input_path
 
     command = 'STAR --genomeDir /netapp/home/dreuxj/Annotation/GRCh38_Gencode24/ --readFilesIn\
-     /netapp/home/dreuxj/rando/Act2/Activated_2-P1.fastq.gz_trimmed.fastq.gz \
-     /netapp/home/dreuxj/rando/Act2/Activated_2-P2.fastq.gz_trimmed.fastq.gz \
+     /netapp/home/dreuxj/rando/Quiescent2/Quiescent2_P1.fastq.gz_trimmed.fastq.gz\
+     /netapp/home/dreuxj/rando/Quiescent2/Quiescent2_P2.fastq.gz_trimmed.fastq.gz \
     --readFilesCommand gunzip -c --outSAMstrandField intronMotif --outFilterIntronMotifs RemoveNoncanonicalUnannotated\
      --outFilterType BySJout --outFileNamePrefix $OUT/'
 
@@ -255,30 +255,7 @@ def run_htseq(name, input_path, output_path, step):
     create_path_if_not_exists(output_path)
 
     mem_req = "5G"
-    time_req="48:00:00"
-
-
-    write_bash_script(name, data_files, output_path, mem_req, time_req, task_count, command, step)
-
-def run_fc(name, input_path, output_path, step):
-
-    data_files = glob.glob(os.path.join(input_path, '*.sorted.bam'))
-    task_count =len(data_files)
-    assert task_count > 0, "Could not find any sorted bam files in folder %s" % input_path
-
-    command = 'R\
-                library(Rsubread)' \
-              'my_count <- featureCounts(files = "/Q1_featureCount/Q1.aligned.sorted.bam",
-              annot.ext ="gencode.v24.primary_assembly.annotation.gtf",
-              isGTFAnnotationFile = TRUE, isPairedEnd = TRUE, requireBothEndsMapped = TRUE,
-              GTF.featureType = "exon", GTF.attrType = "gene_name", countMultiMappingReads = TRUE)
- '
-
-    output_path = os.path.join(output_path, '5.HTSEQ')
-    create_path_if_not_exists(output_path)
-
-    mem_req = "5G"
-    time_req="48:00:00"
+    time_req="24:00:00"
 
 
     write_bash_script(name, data_files, output_path, mem_req, time_req, task_count, command, step)
@@ -357,8 +334,6 @@ def main(argv=None):
         run_samtools(name, input_path, output_path, step)
     elif step == 'htseq':
         run_htseq(name, input_path, output_path, step)
-    elif step == 'featureCounts':
-        run_fc(name, input_path, output_path, step)
     elif step == 'cuffdiff'or step =='cufflinks' or step=='cuffmerge':
         run_cufflinks_suite(name, input_path, output_path, step)
 
