@@ -2,7 +2,7 @@
 
 A pipeline for RNA-Seq data processing using the UCSF qb3 cluster (SGE). 
 
-![Alt text](~/Jo/Pictures/pipeline.png "Pipeline")
+![Alt text](https://joannadxblog.files.wordpress.com/2016/04/pipeline.png?w=628 "Pipeline")
 
 #TOOLS
 FASTQC - http://www.bioinformatics.babraham.ac.uk/projects/fastqc/
