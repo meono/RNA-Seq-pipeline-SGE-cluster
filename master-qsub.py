@@ -188,11 +188,19 @@ def run_star(name, input_path, output_path, step):
     task_count = 1
     assert len(data_files) > 0, "Could not find any fastq files in folder %s" % input_path
 
+    #add mate pairs reading in here
+    #enable run threads option here
+
     command = 'STAR --genomeDir /netapp/home/dreuxj/Annotation/GRCh38_Gencode24/ --readFilesIn\
-     /netapp/home/dreuxj/rando/Quiescent2/Quiescent2_P1.fastq.gz_trimmed.fastq.gz\
-     /netapp/home/dreuxj/rando/Quiescent2/Quiescent2_P2.fastq.gz_trimmed.fastq.gz \
-    --readFilesCommand gunzip -c --outSAMstrandField intronMotif --outFilterIntronMotifs RemoveNoncanonicalUnannotated\
-     --outFilterType BySJout --outFileNamePrefix $OUT/'
+     /netapp/home/dreuxj/rando/p382/Activated+p38i_2-P1.fastq.gz\
+     /netapp/home/dreuxj/rando/p382/Activated+p38i_2-P2.fastq.gz \
+    --readFilesCommand gunzip -c \
+    --outSAMstrandField intronMotif \
+    --outSAMtype BAM SortedByCoordinate \
+    --outFilterIntronMotifs RemoveNoncanonicalUnannotated\
+    --outFilterType BySJout \
+    --.std.out BAM_SortedByCoordinate \
+    --outFileNamePrefix $OUT/'
 
     output_path = os.path.join(output_path, '3.STAR')
     create_path_if_not_exists(output_path)
@@ -259,47 +267,6 @@ def run_htseq(name, input_path, output_path, step):
 
 
     write_bash_script(name, data_files, output_path, mem_req, time_req, task_count, command, step)
-
-def run_cufflinks_suite(name, input_path, output_path, step):
-
-    output_path = os.path.join(output_path, step)
-    create_path_if_not_exists(output_path)
-    data_files=""
-    task_count =len(data_files)
-
-
-    if step == "cufflinks":
-
-        data_files = glob.glob(os.path.join(input_path, '*.sorted.bam'))
-        mem_req = "30G"
-        command = "GTF_ANNOT=/netapp/home/dreuxj/Annotation/hg38/Annotation/genes.gtf" \
-                  "GENOME_FASTA=/netapp/home/dreuxj/hg38/Sequence/Bowtie2Index/genome.fa" \
-                  "cufflinks -m 42 -u -G $GTF_ANNOT -b $GENOME_FASTA $input -o $OUT"
-
-    elif step == "cuffdiff":
-
-        data_files = glob.glob(os.path.join(input_path, '*.sorted.bam'))
-
-        mem_req = "10G"
-        command = "RECTUS_BAM=/netapp/home/dreuxj/JD1291/Samtools/Rectus/Aligned_rectus.sorted.bam" \
-                "VASTUS_BAM=/netapp/home/dreuxj/JD1291/Samtools/Vastus/Aligned_vastus.sorted.bam" \
-                "cuffdiff -L Rectus,Vastus -b $GENOME_FASTA  -o $OUTPUT $RECTUS_BAM $VASTUS_BAM"
-
-    elif step == "cuffmerge":
-
-        data_files = glob.glob(os.path.join(input_path, '*.txt'))
-        mem_req = "30G"
-        command = "GTF_ANNOT=/netapp/home/dreuxj/hg38/Annotation/genes.gtf" \
-                  "GENOME_FASTA=/netapp/home/dreuxj/hg38/Sequence/Bowtie2Index/genome.fa" \
-                  "cuffmerge -g $GTF_ANNOT -s $GENOME_FASTA  -o $OUT $input"
-
-    else:
-        print("Can't match step to function, run aborted")
-
-
-    assert task_count > 0, "Could not find any sorted bam or sam files in folder %s" % input_path
-
-    write_bash_script(name, data_files, output_path, mem_req, task_count, command, step)
 
 def main(argv=None):
     """Program wrapper
