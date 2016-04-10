@@ -4,6 +4,8 @@
 Template version: 1.2
 """
 
+# TO DO: enable run threads
+
 # for python2
 from __future__ import division, print_function
 
@@ -12,6 +14,8 @@ import sys
 import os
 import logging
 import glob
+import tabulate
+from tabulate import tabulate
 
 VERSION = '%(prog)s 1.01'
 
@@ -126,11 +130,10 @@ date
 %(command)s
 
 date
-
 qstat -j $JOB_ID
 
     ''' % {'output_path': output_path, 'task_count': task_count, 'data_joined': str.join(' ', data_files),
-                  'mem_req': mem_req,'time_req': time_req, 'step': step, 'command': command}
+                  'mem_req': mem_req, 'time_req': time_req, 'step': step, 'command': command}
 
     print('========================================================================================================\n')
     print(bash_script)
@@ -138,7 +141,7 @@ qstat -j $JOB_ID
     answer = raw_input("How you feel 'bout submitting that to the cluster? [y/n] ")
 
     if answer.lower() != 'y':
-        print('K, bye Felicia!')
+        print('Nevermind!')
         return
 
     bash_path = os.path.join(output_path, name+'_'+'script.sh')
@@ -149,10 +152,11 @@ qstat -j $JOB_ID
 
     invoke_cluster(bash_path)
 
+
 def run_fastqc(name, input_path, output_path, step):
 
     data_files = glob.glob(os.path.join(input_path, '*.fastq.gz'))
-    task_count= len(data_files)
+    task_count = len(data_files)
     print (task_count)
     assert task_count > 0, "Could not find any FASTQ .gz files in folder %s" % input_path
 
@@ -160,66 +164,111 @@ def run_fastqc(name, input_path, output_path, step):
     create_path_if_not_exists(output_path)
 
     mem_req = "5G"
-    time_req ="05:00:00"
+    time_req = "05:00:00"
     command = 'fastqc $input --outdir=$OUT'
 
     write_bash_script(name, data_files, output_path, mem_req, time_req, task_count, command, step)
 
+
 def run_fastx_trimmer(name, input_path, output_path, step):
 
     data_files = glob.glob(os.path.join(input_path, '*.gz'))
-    task_count=len(data_files)
+    task_count = len(data_files)
     assert task_count > 0, "Could not find any .gz files in folder %s" % input_path
 
     output_path = os.path.join(output_path, '2.FASTX')
     create_path_if_not_exists(output_path)
 
     mem_req = "10G"
-    time_req="10:00:00"
+    time_req = "10:00:00"
     command = "gzip -cd $input | fastx_trimmer -f10 -Q33 | gzip -c > ${input}_trimmed.fastq.gz"
 
     write_bash_script(name, data_files, output_path, mem_req, time_req, task_count, command, step)
 
+
 def run_star(name, input_path, output_path, step):
+    paired_q = raw_input("Do you have paired reads in separate files? [y/n] ")
 
-#might want to find a better way to deal with paired or SE reads?
+    if paired_q.lower() == 'n':
+        print('Ok, one file per task.')
 
-    data_files = glob.glob(os.path.join(input_path, '*.fastq.gz'))
-    task_count = 1
-    assert len(data_files) > 0, "Could not find any fastq files in folder %s" % input_path
+        data_files = glob.glob(os.path.join(input_path, '*.fastq.gz'))
+        task_count = len(data_files)
+        assert task_count > 0, "Could not find any fastq files in folder %s" % input_path
 
-    #add mate pairs reading in here
-    #enable run threads option here
+    elif paired_q.lower() == 'y':
+        print ('Ok, looking for read mates. Mates must be labeled *_1.fastq.gz and *_2.fastq.gz for pairing.')
 
-    command = 'STAR --genomeDir /netapp/home/dreuxj/Annotation/GRCh38_Gencode24/ --readFilesIn\
-     /netapp/home/dreuxj/rando/p382/Activated+p38i_2-P1.fastq.gz\
-     /netapp/home/dreuxj/rando/p382/Activated+p38i_2-P2.fastq.gz \
-    --readFilesCommand gunzip -c \
-    --outSAMstrandField intronMotif \
-    --outSAMtype BAM SortedByCoordinate \
-    --outFilterIntronMotifs RemoveNoncanonicalUnannotated\
-    --outFilterType BySJout \
-    --.std.out BAM_SortedByCoordinate \
-    --outFileNamePrefix $OUT/'
+        # build forward and reverse file lists, match pairs
+        forward = []
+        reverse = []
+        for read_file in glob.glob(os.path.join(input_path, '*_2.fastq.gz')):
+            reverse.append(read_file)
+        for read_file in glob.glob(os.path.join(input_path, '*_1.fastq.gz')):
+            forward.append(read_file)
+
+        pairs = []
+        for forward_file in forward:
+            for reverse_file in reverse:
+                for_path, ext_for = forward_file.rsplit("_", 1)
+                rev_path, ext_rev = reverse_file.rsplit("_", 1)
+                if for_path == rev_path:
+                    pairs.append((forward_file, reverse_file))
+
+        # double check correct pairing in  easy to read table
+        easy_read = []
+        for i in range(len(pairs)):
+            path1, name1 = pairs[i][0].rsplit("/", 1)
+            path2, name2 = pairs[i][1].rsplit("/", 1)
+            easy_read.append((i+1, name1, name2))
+
+        table = tabulate(easy_read, headers=["Pair #", "Forward", "Reverse"], tablefmt="grid")
+        print (table)
+        mates_q = raw_input("Are these pairings correct? [y/n] ")
+        if mates_q.lower() != "y":
+            print("Run aborted.")
+            return
+        else:
+            filename = os.path.join(output_path, 'table_pairs.txt')
+            f = open(filename, 'w')
+            f.write(table)
+            f.close()
+
+        data_paired = []
+        for i in range(len(pairs)):
+            data_paired.append(str.join(' ', pairs[i]))
+        data_files = data_paired
+
+    else:
+        print("Run aborted.")
+        return
+
+    task_count = len(data_files)
+    assert task_count > 0, "Could not find any fastq files in folder %s" % input_path
+
+    command = 'input1=${inputs[$SGE_TASK_ID+$SGE_TASK_ID-1]}\n' \
+    'input2=${inputs[$SGE_TASK_ID+$SGE_TASK_ID]} \n' \
+    'echo "Actual input for this task is:" $input1 $input2 \n' \
+    'STAR --genomeDir /netapp/home/dreuxj/Annotation/GRCh38_Gencode24/ --readFilesIn $input1 $input2\
+    --readFilesCommand gunzip -c --outSAMtype BAM Unsorted --outFilterIntronMotifs RemoveNoncanonical\
+    --outFilterType BySJout --outFileNamePrefix $OUT/$SGE_TASK_ID'
 
     output_path = os.path.join(output_path, '3.STAR')
-    create_path_if_not_exists(output_path)
-
-    mem_req = "32G"
-    time_req="99:00:00"
-
-
+    create_path_if_not_exists(output_path,)
+    mem_req = "35G"
+    time_req = "99:00:00"
     write_bash_script(name, data_files, output_path, mem_req, time_req, task_count, command, step)
 
+
 def run_samtools(name, input_path, output_path, step):
-# samtools is installed on the cluster for all users but it's an older version
-# - need to ref whole path for my more recent version
+    # samtools is installed on the cluster for all users but it's an older version
+    # - need to ref whole path for my more recent version
 
     output_path = os.path.join(output_path, '4.SAMTOOLS')
     create_path_if_not_exists(output_path)
 
-    time_req="48:00:00"
-    mem_req="10G"
+    time_req = "48:00:00"
+    mem_req = "10G"
 
     if step == "samtools_view":
             
@@ -243,17 +292,18 @@ def run_samtools(name, input_path, output_path, step):
          /netapp/home/dreuxj/bin/samtools idxstats $input > ${input}_idxstats"
 
     else:
-        print("Can't match step to function, run aborted")
+        return
 
     task_count = len(data_files)
     assert task_count > 0, "Could not find any bam files in folder %s" % input_path
     write_bash_script(name, data_files, output_path, mem_req, time_req, task_count, command, step)
 
+
 def run_htseq(name, input_path, output_path, step):
-#here think carefully about strand settings - use IGV if needed (not on all reads)
+    # here think carefully about strand settings - use IGV if needed (not on all reads)
 
     data_files = glob.glob(os.path.join(input_path, '*.sorted.bam'))
-    task_count =len(data_files)
+    task_count = len(data_files)
     assert task_count > 0, "Could not find any sorted bam files in folder %s" % input_path
 
     command = 'python -m HTSeq.scripts.count -f bam -r pos -i gene_name -q -s no $input\
@@ -263,10 +313,9 @@ def run_htseq(name, input_path, output_path, step):
     create_path_if_not_exists(output_path)
 
     mem_req = "5G"
-    time_req="24:00:00"
-
-
+    time_req = "24:00:00"
     write_bash_script(name, data_files, output_path, mem_req, time_req, task_count, command, step)
+
 
 def main(argv=None):
     """Program wrapper
@@ -297,21 +346,15 @@ def main(argv=None):
         run_fastx_trimmer(name, input_path, output_path, step)
     elif step == 'star':
         run_star(name, input_path, output_path, step)
-    elif step == 'samtools_view' or step =='samtools_sort' or step=='samtools_idx' or step=='samtools_stats':
+    elif step == 'samtools_view' or step == 'samtools_sort' or step == 'samtools_idx' or step == 'samtools_stats':
         run_samtools(name, input_path, output_path, step)
     elif step == 'htseq':
         run_htseq(name, input_path, output_path, step)
-    elif step == 'cuffdiff'or step =='cufflinks' or step=='cuffmerge':
-        run_cufflinks_suite(name, input_path, output_path, step)
 
     else:
         LOG.error('Did not understand step "%s". Possible values are as follows:\
-         fastqc, fastx, star, htseq,\
-         samtools_view, samtools_sort, samtools_idx, samtools_stats,\
-         cuffdiff, cufflinks, cuffmerge\
-         Run aborted.' % step)
+         fastqc, fastx, star, htseq,samtools_view, samtools_sort, samtools_idx, samtools_stats, Run aborted.' % step)
         return 1
-
     return 0
 
 if __name__ == '__main__':
