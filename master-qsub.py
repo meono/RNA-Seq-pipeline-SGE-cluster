@@ -8,7 +8,6 @@ Template version: 1.2
 
 # for python2
 from __future__ import division, print_function
-
 import argparse
 import sys
 import os
@@ -27,7 +26,7 @@ FORMATER_STRING = ('%(asctime)s - %(filename)s:%(lineno)d - '
                    '%(levelname)s - %(message)s')
 
 
-def create_path_if_not_exists(path):
+def create_path_if_not_exists(path): # self-explanatory
     if not os.path.exists(path):
         os.makedirs(path)
 
@@ -84,10 +83,10 @@ def create_parser():
     verbosity.add_argument('-v', '--verbose', dest='verbose',
                            action='store_true', default=False,
                            help='run as verbose mode')
-    return parser
+    return parser #
 
 
-def invoke_cluster(path):
+def invoke_cluster(path): # submits job to cluster (qsub command) and gives permission for the folders created
     print("Running jobs on cluster with command 'qsub %s'. FOR SCIENCE!" % path)
     os.chmod(path, 0o755)
     os.system("qsub %s" % path)
@@ -95,7 +94,7 @@ def invoke_cluster(path):
 
 
 def write_bash_script(name, data_files, output_path, mem_req, time_req, task_count, command, step):
-
+    #w writes a bash script as needed by the Sun Grid Engine cluster
     bash_script = '''
 
 #!/bin/bash
@@ -154,6 +153,7 @@ qstat -j $JOB_ID
 
 
 def run_fastqc(name, input_path, output_path, step):
+    # runs a quality check on fastq files
 
     data_files = glob.glob(os.path.join(input_path, '*.fastq.gz'))
     task_count = len(data_files)
@@ -171,6 +171,7 @@ def run_fastqc(name, input_path, output_path, step):
 
 
 def run_fastx_trimmer(name, input_path, output_path, step):
+    # trims 10 first bases of each read, returns files with "trimmed" prefix in chosen folder
 
     data_files = glob.glob(os.path.join(input_path, '*.gz'))
     task_count = len(data_files)
@@ -181,7 +182,8 @@ def run_fastx_trimmer(name, input_path, output_path, step):
 
     mem_req = "10G"
     time_req = "10:00:00"
-    command = "gzip -cd $input | fastx_trimmer -f10 -Q33 | gzip -c > ${input}_trimmed.fastq.gz"
+
+    command = "gzip -cd $input | fastx_trimmer -f10 -Q33 -zo $OUT/trimmed_${input##*/}"
 
     write_bash_script(name, data_files, output_path, mem_req, time_req, task_count, command, step)
 
@@ -193,8 +195,6 @@ def run_star(name, input_path, output_path, step):
         print('Ok, one file per task.')
 
         data_files = glob.glob(os.path.join(input_path, '*.fastq.gz'))
-        task_count = len(data_files)
-        assert task_count > 0, "Could not find any fastq files in folder %s" % input_path
 
     elif paired_q.lower() == 'y':
         print ('Ok, looking for read mates. Mates must be labeled *_1.fastq.gz and *_2.fastq.gz for pairing.')
@@ -254,7 +254,7 @@ def run_star(name, input_path, output_path, step):
     --outFilterType BySJout --outFileNamePrefix $OUT/$SGE_TASK_ID'
 
     output_path = os.path.join(output_path, '3.STAR')
-    create_path_if_not_exists(output_path,)
+    create_path_if_not_exists(output_path)
     mem_req = "35G"
     time_req = "99:00:00"
     write_bash_script(name, data_files, output_path, mem_req, time_req, task_count, command, step)
