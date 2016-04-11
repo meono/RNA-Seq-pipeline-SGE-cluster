@@ -183,7 +183,7 @@ def run_fastx_trimmer(name, input_path, output_path, step):
     mem_req = "10G"
     time_req = "10:00:00"
 
-    command = "gzip -cd $input | fastx_trimmer -f10 -Q33 -zo $OUT/trimmed_${input##*/}"
+    command = "gzip -cd $input | fastx_trimmer -f10 -Q33 | gzip -c > $OUT/trimmed_${input##*/}"
 
     write_bash_script(name, data_files, output_path, mem_req, time_req, task_count, command, step)
 
