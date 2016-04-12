@@ -29,9 +29,5 @@ Subread bioconductor package (featureCounts) - http://subread.sourceforge.net/
 
 5. Count the reads with HTSeq or featureCounts (faster). Input is a sorted BAM file.
 
-6. Locally analyze with EdgeR or DeSeq2 for differential expression - done locally not on the cluster.
 
-
-Note: the masterfile to qsub your jobs also supports the cufflinks suite (bowtie, tophat, cuffdiff...etc.) although they are no longer part of my pipeline.
-
-Note: to come is multi-threaded job submission support and more automated use of Bioconductor packages.
+In development: multi-threaded job submission support and more automated use of Bioconductor packages.
