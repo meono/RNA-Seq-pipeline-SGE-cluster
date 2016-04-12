@@ -155,7 +155,18 @@ qstat -j $JOB_ID
 def run_fastqc(name, input_path, output_path, step):
     # runs a quality check on fastq files
 
-    data_files = glob.glob(os.path.join(input_path, '*.fastq.gz'))
+    qc_check=raw_input("Are you QCing fastq or BAM files? [FASTQ/BAM]")
+
+    if qc_check.lower()== "fastq":
+        data_files = glob.glob(os.path.join(input_path, '*.fastq.gz'))
+
+    elif qc_check.lower()=="bam":
+        data_files = glob.glob(os.path.join(input_path, '*.bam'))
+
+    else:
+        print("Not an accepted file format. Run Aborted")
+        return
+
     task_count = len(data_files)
     print (task_count)
     assert task_count > 0, "Could not find any FASTQ .gz files in folder %s" % input_path
@@ -163,7 +174,7 @@ def run_fastqc(name, input_path, output_path, step):
     output_path = os.path.join(output_path, '1.FASTQC')
     create_path_if_not_exists(output_path)
 
-    mem_req = "5G"
+    mem_req = "10G"
     time_req = "05:00:00"
     command = 'fastqc $input --outdir=$OUT'
 
