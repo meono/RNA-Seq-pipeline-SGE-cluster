@@ -94,7 +94,7 @@ def invoke_cluster(path): # submits job to cluster (qsub command) and gives perm
 
 
 def write_bash_script(name, data_files, output_path, mem_req, time_req, task_count, command, step):
-    #w writes a bash script as needed by the Sun Grid Engine cluster
+    # writes a bash script as needed by the Sun Grid Engine cluster
     bash_script = '''
 
 #!/bin/bash
@@ -110,9 +110,13 @@ def write_bash_script(name, data_files, output_path, mem_req, time_req, task_cou
 #$ -l h_rt=%(time_req)s
 #$ -t 1-%(task_count)s
 
+
 inputs=(0 %(data_joined)s)
 input=${inputs[$SGE_TASK_ID]}
 OUT="%(output_path)s"
+
+echo '===================='
+echo $NSLOTS
 
 echo '======================================================================================================='
 echo "Job ID is:" $JOB_ID
@@ -260,7 +264,7 @@ def run_star(name, input_path, output_path, step):
     command = 'input1=${inputs[$SGE_TASK_ID+$SGE_TASK_ID-1]}\n' \
     'input2=${inputs[$SGE_TASK_ID+$SGE_TASK_ID]} \n' \
     'echo "Actual input for this task is:" $input1 $input2 \n' \
-    'STAR --genomeDir /netapp/home/dreuxj/Annotation/GRCh38_Gencode24/ --readFilesIn $input1 $input2\
+    'STAR -runThread %somethings --genomeDir /netapp/home/dreuxj/Annotation/GRCh38_Gencode24/ --readFilesIn $input1 $input2\
     --readFilesCommand gunzip -c --outSAMtype BAM Unsorted --outFilterIntronMotifs RemoveNoncanonical\
     --outFilterType BySJout --outFileNamePrefix $OUT/$SGE_TASK_ID'
 
@@ -289,7 +293,7 @@ def run_samtools(name, input_path, output_path, step):
     elif step == "samtools_sort":
 
         data_files = glob.glob(os.path.join(input_path, '*.bam'))
-        command = "/netapp/home/dreuxj/bin/samtools sort -o $OUT/aligned.sorted.bam -T sorting_this $input"
+        command = "/netapp/home/dreuxj/bin/samtools sort -o $OUT/sorted.aligned.bam $input"
 
     elif step == "samtools_idx":
 

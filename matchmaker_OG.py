@@ -1,17 +1,12 @@
-# A short script that finds Fastq files and pairs them up if they are paired-end reads.
-# The script creates a table of the pairs for reference and saves a list of input files in a txt file.
-# File type (extension) can be easily modified.
-
 from __future__ import division, print_function
 import os
 import glob
 import tabulate
 from tabulate import tabulate
 
-
-def create_path_if_not_exists(mypath):  # self explanatory
-    if not os.path.exists(mypath):
-        os.makedirs(mypath)
+def create_path_if_not_exists(path): # self explanatory
+    if not os.path.exists(path):
+        os.makedirs(path)
 
 
 def find_pairs(input_path):
@@ -27,27 +22,35 @@ def find_pairs(input_path):
         # finds any files with fastq.gz extension in folder
 
     elif paired_q.lower() == 'y':
-        print ('Ok, looking for read mates. Mates must be named *_1.fastq.gz and *_2.fastq.gz for pairing.')
+        print ('Ok, looking for read mates. Mates must be labeled *1.fastq.gz and *2.fastq.gz for pairing.')
+
+        # build forward and reverse file lists, match pairs
+        forward = []
+        reverse = []
+        for read_file in glob.glob(os.path.join(input_path, '*2.fastq.gz')):
+            reverse.append(read_file)
+        for read_file in glob.glob(os.path.join(input_path, '*1.fastq.gz')):
+            forward.append(read_file)
 
         pairs = []
-        full_path = []
+        for forward_file in forward:
+            for_path, ext_for = forward_file.rsplit("_", 1)
+            for reverse_file in reverse:
+                rev_path, ext_rev = reverse_file.rsplit("_", 1)
+                if for_path == rev_path:
+                    pairs.append((forward_file, reverse_file))
+
+        # double check correct pairing in  easy to read table
         easy_read = []
+        for file in list:
+            for i in range(len(pairs)):
+            path1, name1 = pairs[i][0].rsplit("/", 1)
+            path2, name2 = pairs[i][1].rsplit("/", 1)
+            easy_read.append((i+1, name1, name2))
 
-        for forward_file in glob.glob(os.path.join(input_path, '*_1.fastq.gz')):
-            forward_path, forward_name = forward_file.rsplit("/", 1)
-            sample_id, ext = forward_name.rsplit("_", 1)
-            reverse_name = sample_id + '_2.fastq.gz'
-
-            if os.path.isfile(reverse_name) is True:
-                pairs.append((forward_name, reverse_name))
-                full_path.append((forward_file, os.path.join(forward_path+"/"+reverse_name)))
-
-        for index, item in enumerate(pairs, start=1):
-            easy_read.append((index, item))
-
-        table = tabulate(easy_read, headers=["#", "Pair"], tablefmt="grid")
+        # make a pretty table
+        table = tabulate(easy_read, headers=["Pair #", "Forward", "Reverse"], tablefmt="grid")
         print (table)
-
         mates_q = raw_input("Are these pairings correct? [y/n] ")
         if mates_q.lower() != "y":
             print("Run aborted. Double check file names.")
@@ -59,10 +62,9 @@ def find_pairs(input_path):
             f.write(table)
             f.close()
 
-        # correct delimiters for the cluster
         data_files = []
-        for i in range(len(full_path)):
-            data_files.append(str.join(' ', full_path[i]))
+        for i in range(len(pairs)):
+            data_files.append(str.join(' ', pairs[i]))
 
     else:
         print("Run aborted.")
