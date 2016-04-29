@@ -317,7 +317,7 @@ def run_samtools(name, input_path, output_path, step):
 def run_htseq(name, input_path, output_path, step):
     # here think carefully about strand settings - use IGV if needed (not on all reads)
 
-    data_files = glob.glob(os.path.join(input_path, '*.sorted.bam'))
+    data_files = glob.glob(os.path.join(input_path, '*.sorted.aligned.bam'))
     task_count = len(data_files)
     assert task_count > 0, "Could not find any sorted bam files in folder %s" % input_path
 
@@ -328,7 +328,7 @@ def run_htseq(name, input_path, output_path, step):
     create_path_if_not_exists(output_path)
 
     mem_req = "5G"
-    time_req = "24:00:00"
+    time_req = "99:00:00"
     write_bash_script(name, data_files, output_path, mem_req, time_req, task_count, command, step)
 
 
