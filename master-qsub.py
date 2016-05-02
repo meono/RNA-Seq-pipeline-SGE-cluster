@@ -83,7 +83,7 @@ def create_parser():
     verbosity.add_argument('-v', '--verbose', dest='verbose',
                            action='store_true', default=False,
                            help='run as verbose mode')
-    return parser #
+    return parser
 
 
 def invoke_cluster(path): # submits job to cluster (qsub command) and gives permission for the folders created
@@ -115,10 +115,8 @@ inputs=(0 %(data_joined)s)
 input=${inputs[$SGE_TASK_ID]}
 OUT="%(output_path)s"
 
-echo '===================='
-echo $NSLOTS
-
 echo '======================================================================================================='
+echo "The number of slots is:" $NSLOTS
 echo "Job ID is:" $JOB_ID
 echo "SGE Task ID:" $SGE_TASK_ID
 echo '======================================================================================================='
@@ -161,10 +159,10 @@ def run_fastqc(name, input_path, output_path, step):
 
     qc_check=raw_input("Are you QCing fastq or BAM files? [FASTQ/BAM]")
 
-    if qc_check.lower()== "fastq":
+    if qc_check.lower() == "fastq":
         data_files = glob.glob(os.path.join(input_path, '*.fastq.gz'))
 
-    elif qc_check.lower()=="bam":
+    elif qc_check.lower() == "bam":
         data_files = glob.glob(os.path.join(input_path, '*.bam'))
 
     else:
