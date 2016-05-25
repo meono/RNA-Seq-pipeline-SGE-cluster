@@ -86,7 +86,8 @@ def create_parser():
     return parser
 
 
-def invoke_cluster(path): # submits job to cluster (qsub command) and gives permission for the folders created
+def invoke_cluster(path):
+    # submits job to cluster (qsub command) and gives permission for the folders created
     print("Running jobs on cluster with command 'qsub %s'. FOR SCIENCE!" % path)
     os.chmod(path, 0o755)
     os.system("qsub %s" % path)
@@ -157,7 +158,7 @@ qstat -j $JOB_ID
 def run_fastqc(name, input_path, output_path, step):
     # runs a quality check on fastq files
 
-    qc_check=raw_input("Are you QCing fastq or BAM files? [FASTQ/BAM]")
+    qc_check = raw_input("Are you QCing fastq or BAM files? [FASTQ/BAM]")
 
     if qc_check.lower() == "fastq":
         data_files = glob.glob(os.path.join(input_path, '*.fastq.gz'))
