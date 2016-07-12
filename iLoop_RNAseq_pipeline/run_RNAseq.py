@@ -29,8 +29,15 @@ if __name__ == "__main__":
                         level=logging.DEBUG)
     logging.info('\n-----\nRNAseq pipeline started\n----')
     defaults = ip.get_defaults()
-    refs = pd.read_table(os.path.join(iLoop_RNAseq_pipeline.__path__[0], 'defaults', 'References.tsv'))
-    ref = refs[refs.code==args.strain_code].to_dict(orient='records')[0]
+    ref_fs = [os.getcwd(), project_path, os.path.expanduser('~'), os.path.join(iLoop_RNAseq_pipeline.__path__, 'defaults')]
+    for ref_f in ref_fs:
+        try:
+            refs = pd.read_table(os.path.join(ref_f, 'RNAseq_pipeline_references.tsv'))
+            ref = refs[refs.code == args.strain_code].to_dict(orient='records')[0]
+            logging.info('"RNAseq_pipeline_references.tsv" file found under {}'.format(ref_f))
+            break
+        except FileNotFoundError:
+            pass
     reads, project_path = ip.set_project(project_path=args.project_path, read_path=args.read_path)
     groups = mm.find_groups(reads)
     jobs = mq.jobsubmitter(project_path=project_path, groups=groups,readtype='raw', ref=ref, defaults=defaults, ppn=8)
