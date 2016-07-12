@@ -1,0 +1,8 @@
+- add support for htseq-count. this will be used for edgeR and other methods later.
+    - you will need to define library type (strandedness and side)
+    - you will need to extract the feature (eg. type=gene) and attribute (eg. --idattr=gene_name)
+        - it would be ideal to extract the options from the first few features and show them as example
+- get proper reads for testing under example_notebooks/reads/raw
+- get value for project number in job scripts
+- make hisat indexes for all the available genomes
+- define a quality score threshold and use it to block or continue RNAseq (in master_qsub)

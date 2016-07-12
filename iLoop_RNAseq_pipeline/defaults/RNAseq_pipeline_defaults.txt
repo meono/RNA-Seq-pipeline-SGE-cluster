@@ -1,0 +1,11 @@
+Note,You can use this file as template. Modify it and leave it under your home folder to use as default. A single space usually means no parameters will be used.
+email,youremail@here.com
+project,projectid
+hisat2_options,-q --no-spliced-alignment --rna-strandness RF --dta
+stringtie_options,-B -e
+tophat2_options,not yet
+cufflinks_options,--library-type fr-firststrand --max-bundle-frags 25000000
+cuffmerge_options,
+cuffdiff_options,--library-type fr-firststrand --upper-quartile-norm
+cuffquant_options,--library-type fr-firststrand --max-bundle-frags 25000000
+htseq_options,-q --type=gene --idattr=gene_name
