@@ -2,7 +2,8 @@ __author__ = 'emre'
 
 from setuptools import setup
 
-requirements = ['validate_email>=1.3']
+requirements = ['validate_email>=1.3',
+                'pandas>=0.18.1']
 
 setup(
     name='iLoop_RNAseq_pipeline',
