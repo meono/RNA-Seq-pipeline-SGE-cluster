@@ -88,6 +88,9 @@ def check_read_paths(read_path):
 
 def check_project_path(project_path):
     while True:
+        if project_path == None:
+            project_path = input('Enter full path for project files: ')
+
         if not os.path.exists(project_path):
             create_path = input('This path does not exist. Do you want to create it? ([y]/n) ')
             if (create_path.lower() == 'y') or (create_path.lower() == ''):
