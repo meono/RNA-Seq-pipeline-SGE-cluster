@@ -25,7 +25,7 @@ if test X$PBS_ENVIRONMENT = XPBS_BATCH; then cd $PBS_O_WORKDIR; fi
 # here follow the commands you want to execute'''
 
 
-def fastqc_job(groups, output_path, defaults, ppn='8', walltime ='02:00:00', ):
+def fastqc_job(project_path, groups, output_path, defaults, ppn='8', walltime ='02:00:00', ):
     """Runs fastqc for all the reads.
 
     reads: dictionary from set_project function
@@ -211,7 +211,7 @@ def job_submitter(project_path, groups, ref, defaults, ppn='8', readtype='raw'):
 
     # do quality checks
     try:
-        js = fastqc_job(groups=groups, output_path=os.path.join(project_path, 'reads', 'QC_output', readtype), defaults=defaults)
+        js = fastqc_job(project_path=project_path, groups=groups, output_path=os.path.join(project_path, 'reads', 'QC_output', readtype), defaults=defaults)
         jfn = os.path.join(project_path, 'job_files', 'job_fastqc.sh')
         logger.info(jfn)
         jf = open(jfn, 'w')
