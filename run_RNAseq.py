@@ -21,7 +21,7 @@ args = parser.parse_args()
 
 def main():
     project_path = ip.check_project_path(args.project_path)
-    logging.basicConfig(filename='{}/RNAseq_pipeline.log'.format(args.project_path),
+    logging.basicConfig(filename='{}/RNAseq_pipeline.log'.format(project_path),
                         format='%(asctime)s %(levelname)s : %(message)s',
                         datefmt='%d/%m/%Y %H:%M:%S',
                         level=logging.DEBUG)
@@ -30,7 +30,7 @@ def main():
 
     defaults = ip.get_defaults()
     ref = ip.get_reference(strain_code=args.strain_code, project_path=project_path)
-    reads, project_path = ip.set_project(project_path=args.project_path, read_path=args.read_path)
+    reads, project_path = ip.set_project(project_path=project_path, read_path=args.read_path)
     groups = mm.find_groups(reads)
     essentials = [defaults, ref, reads, project_path, groups]
     if not any(ess for ess in essentials if not ess):
