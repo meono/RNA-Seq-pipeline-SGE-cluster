@@ -13,9 +13,9 @@ job_header = \
 #PBS -N JOBNAME
 # -- estimated wall clock time (execution time): hh:mm:ss --
 #PBS -l walltime=WALTIME
-# –- number of processors/cores/nodes --
+# -- number of processors/cores/nodes --
 #PBS -l nodes=1:ppn=PPN
-# –- user email address --
+# -- user email address --
 #PBS -M EMAILADDRESS
 # -- run in the current working (submission) directory --
 if test X$PBS_ENVIRONMENT = XPBS_BATCH; then cd $PBS_O_WORKDIR; fi
@@ -202,7 +202,7 @@ def job_submitter(project_path, groups, ref, defaults, ppn='8', readtype='raw'):
         jfn = os.path.join(project_path, 'job_files', 'job_fastqc.sh')
         logger.info(jfn)
         jf = open(jfn, 'w')
-        jf.write(js.encode('utf8', 'replace'))
+        jf.write(js)
         jf.close()
         p = subprocess.Popen(['qsub', jfn], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         p.wait()
