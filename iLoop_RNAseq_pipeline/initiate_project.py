@@ -51,7 +51,7 @@ def get_defaults():
 
         project = input('Enter Computerome project ID for billing: \n')
         # TODO It is possible to validate this by checking folder name under "/home/projects".
-        print('Writing these to "RNAseq_pipeline)defaults.txt" under home path.')
+        print('Writing these to "RNAseq_pipeline_defaults.txt" under home path.')
         f = open(os.path.join(os.path.expanduser("~"), 'RNAseq_pipeline_defaults.txt'), 'w')
         f.write('email,{}\nproject,{}'.format(email, project))
         f.close()
