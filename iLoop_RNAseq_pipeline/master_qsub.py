@@ -226,7 +226,7 @@ def job_submitter(project_path, groups, ref, defaults, ppn='8', readtype='raw'):
                                                 defaults=defaults, ppn=ppn)
                 jfn = os.path.join(project_path, 'job_files', 'job_{}_mapandlink.sh'.format(sample))
                 jf = open(jfn, 'w')
-                jf.write(js.encode('utf8', 'replace'))
+                jf.write(js)
                 jf.close()
                 p = subprocess.Popen(['qsub', jfn], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
                 p.wait()
