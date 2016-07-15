@@ -128,7 +128,7 @@ samtools sort -@ PPN - {}'''.format(defaults['hisat2_options'],
     return '\n\n'.join(jobstr).replace('PPN', str(ppn))
 
 
-def mergejob(project_path, mapjobIDs, ppn='1', walltime='01:00:00', ref=None, defaults=None):
+def merge_job(project_path, mapjobIDs, ppn='1', walltime='01:00:00', ref=None, defaults=None):
 
     jobstr = []
     jobstr += [job_header.replace('JOBNAME', 'cuffmerge')\
@@ -152,7 +152,7 @@ module load ngs tools cufflinks/2.2.1 tophat/2.1.1 bowtie2/2.2.5''']
     return '\n\n'.join(jobstr).replace('PPN', ppn)
 
 
-def quantjobs(project_path, sample, mergejob, ppn='8', walltime = '12:00:00', ref=None, defaults=None):
+def quant_jobs(project_path, sample, mergejob, ppn='8', walltime ='12:00:00', ref=None, defaults=None):
 
     jobstr = []
     jobstr += [job_header.replace('JOBNAME', '_'.join([sample]+'cuffquant'))\
@@ -162,7 +162,7 @@ def quantjobs(project_path, sample, mergejob, ppn='8', walltime = '12:00:00', re
                        .replace('JOB_OUTPUTS',  os.path.join(project_path, 'job_outputs')) \
                        .replace('EMAILADDRESS', defaults['email'])]
 
-    # make this job depend on successful completion of previous jobs: mergejob
+    # make this job depend on successful completion of previous jobs: merge_job
     jobstr += ['#PBS –W depend=afterok:{}'.format(mergejob)]
 
     jobstr += ['''# Load modules needed by myapplication.x
@@ -181,7 +181,7 @@ module load ngs tools cufflinks/2.2.1 tophat/2.1.1 bowtie2/2.2.5''']
     return '\n\n'.join(jobstr).replace('PPN', ppn)
 
 
-def diffjob(project_path, groups, quantjobsIDs, ppn='8', walltime='24:00:00', ref=None, defaults=None):
+def diff_job(project_path, groups, quantjobsIDs, ppn='8', walltime='24:00:00', ref=None, defaults=None):
 
     jobstr = []
     jobstr += [job_header.replace('JOBNAME', 'cuffdiff')\
@@ -279,7 +279,7 @@ def job_submitter(project_path, groups, ref, defaults, ppn='8', readtype='raw'):
         return False
 
     try:
-        js = mergejob(project_path=project_path, mapjobs=mapjobIDs, ref=ref, defaults=defaults)
+        js = merge_job(project_path=project_path, mapjobs=mapjobIDs, ref=ref, defaults=defaults)
         jfn = os.path.join(project_path, 'job_files', 'job_cuffmerge.sh')
         jf = open(jfn, 'w')
         jf.write(js)
@@ -298,7 +298,7 @@ def job_submitter(project_path, groups, ref, defaults, ppn='8', readtype='raw'):
         for group_name, group in groups.items():
             quantjobsIDs = []
             for sample, reads in group.items():
-                js = quantjobs(project_path=project_path, sample=sample, mergejob=mergejob, ref=ref, defaults=defaults, ppn=ppn)
+                js = quant_jobs(project_path=project_path, sample=sample, mergejob=mergejob, ref=ref, defaults=defaults, ppn=ppn)
                 jfn = os.path.join(project_path, 'job_files', 'job_{}_cuffquant.sh'.format(sample))
                 jf = open(jfn, 'w')
                 jf.write(js)
@@ -319,8 +319,8 @@ def job_submitter(project_path, groups, ref, defaults, ppn='8', readtype='raw'):
         logger.warning('Folder for cuffdiff exists. Previously generated files will be overwritten.')
 
     try:
-        js = diffjob(project_path=project_path, groups=groups, quantjobsIDs=quantjobsIDs, ppn=PPN, walltime='24:00:00'
-                                                                                                            '', ref=ref, defaults=defaults)
+        js = diff_job(project_path=project_path, groups=groups, quantjobsIDs=quantjobsIDs, ppn=ppn, walltime='24:00:00',
+                      ref=ref, defaults=defaults)
         jfn = os.path.join(project_path, 'job_files', 'job_cuffdiff.sh')
         jf = open(jfn, 'w')
         jf.write(js)
