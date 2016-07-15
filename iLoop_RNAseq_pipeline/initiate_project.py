@@ -117,7 +117,9 @@ def check_project_path(project_path):
 
     while True:
         if project_path == None:
-            project_path = input('Enter full path for project files: ')
+            project_path = input('Enter full path for project files or press enter to use current folder: \n')
+            if project_path == '':
+                project_path = os.getcwd()
 
         if not os.path.exists(project_path):
             create_path = input('This path does not exist. Do you want to create it? ([y]/n) ')
