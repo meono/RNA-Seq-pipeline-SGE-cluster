@@ -24,15 +24,15 @@ job_header = \
 if test X$PBS_ENVIRONMENT = XPBS_BATCH; then cd $PBS_O_WORKDIR; fi
 # here follow the commands you want to execute'''
 
-def check_fastqc(project_path, groups, output_path):
+def check_fastqc(groups, output_path):
     """Checks if fastqc files exists and are not empty."""
     for readf in [readf for group in groups.values() for readfs in group.values() for readf in readfs]:
-        qcf = readf.split('.')[0]
-        if (not os.path.isfile(qcf + '_fastqc.zip')) or \
-           (not os.path.isfile(qcf + '_fastqc.html')):
+        qcf = readf.split('.')[0].split('/')[-1]
+        if (not os.path.isfile(os.path.join(output_path, qcf + '_fastqc.zip'))) or \
+           (not os.path.isfile(os.path.join(output_path, qcf + '_fastqc.html'))):
             return False
-        elif (os.path.getsize(qcf + '_fastqc.zip') == 0) or \
-           (os.path.getsize(qcf + '_fastqc.html') == 0):
+        elif (os.path.getsize(os.path.join(output_path, qcf + '_fastqc.zip')) == 0) or \
+             (os.path.getsize(os.path.join(output_path, qcf + '_fastqc.html')) == 0):
             return False
     return True
 
