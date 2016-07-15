@@ -15,6 +15,9 @@ job_header = \
 #PBS -l walltime=WALTIME
 # -- number of processors/cores/nodes --
 #PBS -l nodes=1:ppn=PPN
+# -- output destination --
+#PBS JOB_OUTPUTS/JOBNAME_${PBS_JOBID}.o
+#PBS -j oe
 # -- user email address --
 #PBS -M EMAILADDRESS
 # -- run in the current working (submission) directory --
