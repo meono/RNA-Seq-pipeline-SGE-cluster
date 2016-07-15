@@ -24,6 +24,17 @@ job_header = \
 if test X$PBS_ENVIRONMENT = XPBS_BATCH; then cd $PBS_O_WORKDIR; fi
 # here follow the commands you want to execute'''
 
+def check_fastqc(project_path, groups, output_path):
+    """Checks if fastqc files exists and are not empty."""
+    for readf in [readf for group in groups.values() for readfs in group.values() for readf in readfs]:
+        qcf = readf.split('.')[0]
+        if (not os.path.isfile(qcf + '_fastqc.zip')) or \
+           (not os.path.isfile(qcf + '_fastqc.html')):
+            return False
+        elif (os.path.getsize(qcf + '_fastqc.zip') == 0) or \
+           (os.path.getsize(qcf + '_fastqc.html') == 0):
+            return False
+    return True
 
 def fastqc_job(project_path, groups, output_path, defaults, ppn='8', walltime ='02:00:00', ):
     """Runs fastqc for all the reads.
@@ -210,17 +221,21 @@ def job_submitter(project_path, groups, ref, defaults, ppn='8', readtype='raw'):
 
     # do quality checks
     try:
-        js = fastqc_job(project_path=project_path, groups=groups, output_path=os.path.join(project_path, 'reads', 'QC_output', readtype), defaults=defaults)
-        jfn = os.path.join(project_path, 'job_files', 'job_fastqc.sh')
-        logger.info(jfn)
-        jf = open(jfn, 'w')
-        jf.write(js)
-        jf.close()
-        p = subprocess.Popen(['qsub', jfn], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        p.wait()
-        out, err = p.communicate()
-        qcjobID = out.split(b'.')[0]
-        os.system('sleep 1')
+        output_path = os.path.join(project_path, 'reads', 'QC_output', readtype)
+        if not check_fastqc(project_path=project_path, groups=groups, output_path=output_path):
+            js = fastqc_job(project_path=project_path, groups=groups, output_path=output_path, defaults=defaults)
+            jfn = os.path.join(project_path, 'job_files', 'job_fastqc.sh')
+            jf = open(jfn, 'w')
+            jf.write(js)
+            jf.close()
+            p = subprocess.Popen(['qsub', jfn], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            p.wait()
+            out, err = p.communicate()
+            qcjobID = out.split(b'.')[0]
+            os.system('sleep 1')
+        else:
+            logger.info('Existing fastqc files found. Skipping quality check job.')
+            qcjobID = True
     except Exception as ex:
         logger.error('Problem with FastQC. RNAseq analysis is stopped.\nAn exception of type {} occured. Arguments:\n{}'.format(type(ex).__name__, ex.args))
         return False
