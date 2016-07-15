@@ -42,7 +42,7 @@ def fastqc_job(groups, output_path, defaults, ppn='8', walltime ='02:00:00', ):
                    .replace('WALTIME', walltime) \
                    # .replace('PPN', ppn)\
                    .replace('PROJECT', defaults['project']) \
-                   .replace('JOB_OUTPUTS', 'job_outputs') \
+                   .replace('JOB_OUTPUTS',  os.path.join(project_path, 'job_outputs')) \
                    .replace('EMAILADDRESS', defaults['email'])]
 
     jobstr += ['''# Load modules needed by myapplication.x
@@ -65,7 +65,7 @@ def mapandlinkjobs(project_path, sample, reads, defaults, ref, ppn='8', walltime
                        .replace('WALTIME', walltime)\
                        # .replace('PPN', ppn)\
                        .replace('PROJECT', defaults['project']) \
-                       .replace('JOB_OUTPUTS', 'job_outputs') \
+                       .replace('JOB_OUTPUTS',  os.path.join(project_path, 'job_outputs')) \
                        .replace('EMAILADDRESS', defaults['email'])]
 
     jobstr += ['''# Load modules needed by myapplication.x
@@ -124,7 +124,7 @@ def mergejob(project_path, mapjobIDs, ppn='1', walltime='01:00:00', ref=None, de
                          .replace('WALTIME', walltime)\
                          # .replace('PPN', ppn)\
                          .replace('PROJECT', defaults['project']) \
-                         .replace('JOB_OUTPUTS', 'job_outputs') \
+                         .replace('JOB_OUTPUTS',  os.path.join(project_path, 'job_outputs')) \
                          .replace('EMAILADDRESS', defaults['email'])]
 
     # make this job depend on successful completion of previous jobs: mapandlinkjobs
@@ -148,7 +148,7 @@ def quantjobs(project_path, sample, mergejob, ppn='8', walltime = '12:00:00', re
                        .replace('WALTIME', walltime)\
                        # .replace('PPN', ppn)\
                        .replace('PROJECT', defaults['project']) \
-                       .replace('JOB_OUTPUTS', 'job_outputs') \
+                       .replace('JOB_OUTPUTS',  os.path.join(project_path, 'job_outputs')) \
                        .replace('EMAILADDRESS', defaults['email'])]
 
     # make this job depend on successful completion of previous jobs: mergejob
@@ -177,7 +177,7 @@ def diffjob(project_path, groups, quantjobsIDs, ppn='8', walltime='24:00:00', re
                          .replace('WALTIME', walltime)\
                          # .replace('PPN', ppn)\
                          .replace('PROJECT', defaults['project']) \
-                         .replace('JOB_OUTPUTS', 'job_outputs') \
+                         .replace('JOB_OUTPUTS',  os.path.join(project_path, 'job_outputs')) \
                          .replace('EMAILADDRESS', defaults['email'])]
 
     # make this job depend on successful completion of previous jobs: mapandlinkjobs
