@@ -65,7 +65,7 @@ module load ngs FastQC/0.11.2''']
     return '\n\n'.join(jobstr).replace('PPN', ppn)
 
 
-def mapandlinkjobs(project_path, sample, reads, defaults, ref, ppn='8', walltime = '12:00:00', jobs=None):
+def mapandlink_jobs(project_path, sample, reads, defaults, ref, ppn='8', walltime ='12:00:00', jobs=None):
 
     if jobs is None:
         jobs = ['hisat2', 'stringtie', 'cufflinks', 'htseq-count']
@@ -118,7 +118,7 @@ samtools sort -@ PPN - {}'''.format(defaults['hisat2_options'],
                                                                 (os.path.join(project_path, sample, 'accepted_hits.sorted.bam')))]
 
     if 'htseq-count' in jobs:
-        jobstr += ['htseq-count {} -f bam {} {} -o {} > {}'.format(ref['htseq_options'],
+        jobstr += ['htseq-count {} -f bam {} {} -o {} > {}'.format(defaults['htseq_options'],
                                                                    (os.path.join(project_path, sample, 'accepted_hits.sorted.bam')),
                                                                    ((ref['gff_genome']) if ref.get('gff_genome') else ''),
                                                                    (os.path.join(project_path, sample, 'htseq_counts.sam')),
@@ -137,7 +137,7 @@ def mergejob(project_path, mapjobIDs, ppn='1', walltime='01:00:00', ref=None, de
                          .replace('JOB_OUTPUTS',  os.path.join(project_path, 'job_outputs')) \
                          .replace('EMAILADDRESS', defaults['email'])]
 
-    # make this job depend on successful completion of previous jobs: mapandlinkjobs
+    # make this job depend on successful completion of previous jobs: mapandlink_jobs
     jobstr += ['#PBS –W depend=afterok:{}'.format(':'.join([mapjob for mapjob in mapjobIDs]))]
 
     jobstr += ['''# Load modules needed by myapplication.x
@@ -190,7 +190,7 @@ def diffjob(project_path, groups, quantjobsIDs, ppn='8', walltime='24:00:00', re
                          .replace('JOB_OUTPUTS',  os.path.join(project_path, 'job_outputs')) \
                          .replace('EMAILADDRESS', defaults['email'])]
 
-    # make this job depend on successful completion of previous jobs: mapandlinkjobs
+    # make this job depend on successful completion of previous jobs: mapandlink_jobs
     jobstr += ['#PBS –W depend=afterok:{}'.format(':'.join([quantjobsID for quantjobsID in quantjobsIDs]))]
 
     jobstr += ['''# Load modules needed by myapplication.x
@@ -249,8 +249,8 @@ def job_submitter(project_path, groups, ref, defaults, ppn='8', readtype='raw'):
             samples = []
             for sample, reads in group.items():
                 samples.append(sample)
-                js = mapandlinkjobs(project_path=project_path, sample=sample, reads=reads, ref=ref,
-                                                defaults=defaults, ppn=ppn)
+                js = mapandlink_jobs(project_path=project_path, sample=sample, reads=reads, ref=ref,
+                                     defaults=defaults, ppn=ppn)
                 jfn = os.path.join(project_path, 'job_files', 'job_{}_mapandlink.sh'.format(sample))
                 jf = open(jfn, 'w')
                 jf.write(js)
