@@ -219,7 +219,7 @@ def job_submitter(project_path, groups, ref, defaults, ppn='8', readtype='raw'):
         p = subprocess.Popen(['qsub', jfn], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         p.wait()
         out, err = p.communicate()
-        qcjobID = out.split('.')[0]
+        qcjobID = out.split(b'.')[0]
         os.system('sleep 1')
     except Exception as ex:
         logger.error('Problem with FastQC. RNAseq analysis is stopped.\nAn exception of type {} occured. Arguments:\n{}'.format(type(ex).__name__, ex.args))
@@ -243,7 +243,7 @@ def job_submitter(project_path, groups, ref, defaults, ppn='8', readtype='raw'):
                 p = subprocess.Popen(['qsub', jfn], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
                 p.wait()
                 out, err = p.communicate()
-                mapjobIDs.append(out.split('.')[0])
+                mapjobIDs.append(out.split(b'.')[0])
                 os.system('sleep 1')
     except Exception as ex:
         logger.error('Problem with map and link. RNAseq analysis is stopped.\nAn exception of type {} occured. Arguments:\n{1!r}'.format(type(ex).__name__, ex.args))
@@ -271,7 +271,7 @@ def job_submitter(project_path, groups, ref, defaults, ppn='8', readtype='raw'):
         p = subprocess.Popen(['qsub', jfn], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         p.wait()
         out, err = p.communicate()
-        mergejob = out.split('.')[0]
+        mergejob = out.split(b'.')[0]
         os.system('sleep 1')
     except Exception as ex:
         logger.error('Problem with Cuffmerge. RNAseq analysis is stopped.\nAn exception of type {} occured. Arguments:\n{1!r}'.format(type(ex).__name__, ex.args))
@@ -290,7 +290,7 @@ def job_submitter(project_path, groups, ref, defaults, ppn='8', readtype='raw'):
                 p = subprocess.Popen(['qsub', jfn], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
                 p.wait()
                 out, err = p.communicate()
-                quantjobsIDs.append(out.split('.')[0])
+                quantjobsIDs.append(out.split(b'.')[0])
                 os.system('sleep 1')
     except Exception as ex:
         logger.error('Problem with Cuffquant jobs. RNAseq analysis is stopped.\nAn exception of type {} occured. Arguments:\n{1!r}'.format(type(ex).__name__, ex.args))
@@ -312,7 +312,7 @@ def job_submitter(project_path, groups, ref, defaults, ppn='8', readtype='raw'):
         p = subprocess.Popen(['qsub', jfn], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         p.wait()
         out, err = p.communicate()
-        diffjob = out.split('.')[0]
+        diffjob = out.split(b'.')[0]
         os.system('sleep 1')
     except Exception as ex:
         logger.error('Problem with Cuffdiff. RNAseq analysis is stopped.\nAn exception of type {} occured. Arguments:\n{1!r}'.format(type(ex).__name__, ex.args))
