@@ -16,7 +16,7 @@ job_header = \
 # -- number of processors/cores/nodes --
 #PBS -l nodes=1:ppn=PPN
 # -- output destination --
-#PBS JOB_OUTPUTS/JOBNAME_${PBS_JOBID}.o
+#PBS -o JOB_OUTPUTS/JOBNAME_${PBS_JOBID%%.*}.o
 #PBS -j oe
 # -- user email address --
 #PBS -M EMAILADDRESS
@@ -46,8 +46,7 @@ def fastqc_job(project_path, groups, output_path, defaults, ppn='8', walltime ='
                    .replace('EMAILADDRESS', defaults['email'])]
 
     jobstr += ['''# Load modules needed by myapplication.x
-module load ngs FastQC/0.11.2
-''']
+module load ngs FastQC/0.11.2''']
 
     jobstr += ['fastqc -t PPN -o {} {}'.format(output_path,
                                                ' '.join([readf for group in groups.values() for readfs in group.values() for readf in readfs]))]
