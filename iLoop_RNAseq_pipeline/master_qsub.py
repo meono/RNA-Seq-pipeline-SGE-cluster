@@ -222,7 +222,7 @@ def job_submitter(project_path, groups, ref, defaults, ppn='8', readtype='raw'):
     # do quality checks
     try:
         output_path = os.path.join(project_path, 'reads', 'QC_output', readtype)
-        if not check_fastqc(project_path=project_path, groups=groups, output_path=output_path):
+        if not check_fastqc(groups=groups, output_path=output_path):
             js = fastqc_job(project_path=project_path, groups=groups, output_path=output_path, defaults=defaults)
             jfn = os.path.join(project_path, 'job_files', 'job_fastqc.sh')
             jf = open(jfn, 'w')
