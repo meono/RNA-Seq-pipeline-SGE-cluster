@@ -2,6 +2,7 @@ from __future__ import division, print_function
 import collections
 import logging
 
+logger = logging.getLogger(__name__)
 
 def check_read_uniqueness(reads):
     read_files = [read for read_list in reads.values() for read in read_list]
@@ -17,12 +18,12 @@ def check_read_uniqueness(reads):
                         report[duplicate].add(path)
                     except:
                         report[duplicate] = {path}
-        logging.warning('There are reads with identical names under different paths:\n')
+        logger.warning('There are reads with identical names under different paths:\n')
         for read, paths in report.items():
-            logging.warning('{} found under'.format(read))
+            logger.warning('{} found under'.format(read))
             for path in paths:
-                logging.warning('\t{}'.format(path))
-        logging.error('Check input reads and restart.')
+                logger.warning('\t{}'.format(path))
+        logger.error('Check input reads and restart.')
         return False
 
 
@@ -88,7 +89,7 @@ def find_groups(reads):
         elif groups.get(basename) and groups[basename].get(replicate):
             groups[basename][replicate].append('/'.join([dirName, read]))
 
-    logging.info('Experiment setup:\n{}'.format(print_experiment(groups)))
+    logger.info('Experiment setup:\n{}'.format(print_experiment(groups)))
     return groups
 
 

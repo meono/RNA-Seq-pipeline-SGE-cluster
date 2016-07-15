@@ -5,9 +5,9 @@ import stat
 from setuptools import setup
 
 # run_RNAseq file needs to be executable but git won't set that properly
-os.chmod(os.path.join(os.getcwd(), 'iLoop_RNAseq_pipeline', 'run_RNAseq.py'),
-         os.stat(os.path.join(os.getcwd(), 'iLoop_RNAseq_pipeline',
-                              'run_RNAseq.py')).st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
+# os.chmod(os.path.join(os.getcwd(), 'iLoop_RNAseq_pipeline', 'run_RNAseq.py'),
+#          os.stat(os.path.join(os.getcwd(), 'iLoop_RNAseq_pipeline',
+#                               'run_RNAseq.py')).st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
 
 requirements = ['validate_email>=1.3',
                 'pandas>=0.18.1']
