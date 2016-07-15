@@ -112,7 +112,7 @@ samtools sort -@ PPN - {}'''.format(defaults['hisat2_options'],
                                                                   os.path.join(project_path, sample, 'accepted_hits.sorted.bam'))]
 
     if 'cufflinks' in jobs:
-        jobstr += ['echo "cufflinks"\ncufflinks {} -p PPN {} -M {} -o {} {}'.format(defaults['cufflinks_options'],
+        jobstr += ['echo "cufflinks"\ncufflinks {} -p PPN {} {} -o {} {}'.format(defaults['cufflinks_options'],
                                                                 ('-G '+ref['gff_genome']) if ref.get('gff_genome') else '',
                                                                 ('-M ' + ref['gff_mask']) if ref.get('gff_mask') else '',
                                                                 (os.path.join(project_path, sample)),
