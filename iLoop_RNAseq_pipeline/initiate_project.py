@@ -82,7 +82,7 @@ def check_read_paths(read_path):
     elif isinstance(read_path, list):
         read_path = set(read_path)
     else:
-        logger.warning('Read path should be a comma separated strings or list of strings for *full* paths containing reads.')
+        logger.warning('Read path should be a comma separated strings or list of strings for paths containing reads.')
         return False
 
     paths2remove = set()
@@ -117,9 +117,10 @@ def check_project_path(project_path):
 
     while True:
         if project_path == None:
-            project_path = input('Enter full path for project files or press enter to use current folder: \n')
+            project_path = input('Enter path for project files or press enter to use current folder: \n')
             if project_path == '':
                 project_path = os.getcwd()
+            project_path = os.path.abspath(project_path)
 
         if not os.path.exists(project_path):
             create_path = input('This path does not exist. Do you want to create it? ([y]/n) ')
@@ -129,10 +130,12 @@ def check_project_path(project_path):
                     return project_path
                 except PermissionError:
                     print('Can not create folder there: Permission error. Try again')
-                    project_path = input('Enter new *full* path for project output: \n')
+                    project_path = input('Enter new path for project output: \n')
+                    project_path = os.path.abspath(project_path)
                 except:
                     print('Can not create folder there. Try again')
-                    project_path = input('Enter new *full* path for project output: \n')
+                    project_path = input('Enter new path for project output: \n')
+                    project_path = os.path.abspath(project_path)
 
         if os.path.exists(project_path) and (os.access(project_path, os.W_OK)):
             if (os.listdir(project_path)):
@@ -140,7 +143,8 @@ def check_project_path(project_path):
             return project_path
         elif os.path.exists(project_path) and not (os.access(project_path, os.W_OK)):
             logger.warning('You do not have write permission in this folder.')
-            project_path = input('Enter new *full* path for project output: \n')
+            project_path = input('Enter new path for project output: \n')
+            project_path = os.path.abspath(project_path)
 
 def set_project(project_path=None, read_path=None):
 
@@ -170,7 +174,8 @@ def set_project(project_path=None, read_path=None):
     while True:
         try:
             if (multiple_paths.lower() == 'y') or (multiple_paths.lower() == ''):
-                new_path = input('Enter *full* path for new reads: (press enter to stop)\n')
+                new_path = input('Enter path for new reads: (press enter to stop)\n')
+                new_path = os.path.abspath(new_path)
                 if new_path == '':
                     break
                 if new_path in reads.key():
@@ -191,8 +196,9 @@ def set_project(project_path=None, read_path=None):
         except:
             pass
 
-        read_path = input('Enter *full* path for reads:\n')
-        reads = check_read_paths(read_path)
+        read_path = input('Enter path for reads:\n')
+        reads = check_read_paths(os.path.abspath(read_path))
+
         if reads:
             multiple_paths = input('Are there other reads to use? ([y]/n) ')
             continue
