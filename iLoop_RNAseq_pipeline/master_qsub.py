@@ -93,7 +93,8 @@ export PATH''']
     R2reads.sort()
 
     if (ref.get('hisat2_indexes')) and ('hisat2' in jobs):
-        jobstr += ['''hisat2 {} -p PPN -x {} {} {} 2>{} | \
+        jobstr += ['''echo "hisat2"
+hisat2 {} -p PPN -x {} {} {} 2>{} | \
 samtools view -@ PPN -hbu - | \
 samtools sort -@ PPN - {}'''.format(defaults['hisat2_options'],
                                     ref['hisat2_indexes'],
@@ -104,21 +105,21 @@ samtools sort -@ PPN - {}'''.format(defaults['hisat2_options'],
 
     if 'stringtie' in jobs:
         logger.warning('Beware: Stringtie does not allow masking for now.')
-        jobstr += ['stringtie {} -p PPN {} -o {} -A {} {}'.format(defaults['stringtie_options'],
+        jobstr += ['echo "stringtie"\nstringtie {} -p PPN {} -o {} -A {} {}'.format(defaults['stringtie_options'],
                                                                   (('-G ' + ref['gff_genome']) if ref.get('gff_genome') else ''),
                                                                   os.path.join(project_path, sample, 'transcripts.gtf'),
                                                                   os.path.join(project_path, sample, 'gene_abund.tab'),
                                                                   os.path.join(project_path, sample, 'accepted_hits.sorted.bam'))]
 
     if 'cufflinks' in jobs:
-        jobstr += ['cufflinks {} -p PPN {} -M {} -o {} {}'.format(defaults['cufflinks_options'],
+        jobstr += ['echo "cufflinks"\ncufflinks {} -p PPN {} -M {} -o {} {}'.format(defaults['cufflinks_options'],
                                                                 ('-G '+ref['gff_genome']) if ref.get('gff_genome') else '',
                                                                 ('-M ' + ref['gff_mask']) if ref.get('gff_mask') else '',
                                                                 (os.path.join(project_path, sample)),
                                                                 (os.path.join(project_path, sample, 'accepted_hits.sorted.bam')))]
 
     if 'htseq-count' in jobs:
-        jobstr += ['htseq-count {} -f bam {} {} -o {} > {}'.format(defaults['htseq_options'],
+        jobstr += ['echo "htseq"\nhtseq-count {} -f bam {} {} -o {} > {}'.format(defaults['htseq_options'],
                                                                    (os.path.join(project_path, sample, 'accepted_hits.sorted.bam')),
                                                                    ((ref['gff_genome']) if ref.get('gff_genome') else ''),
                                                                    (os.path.join(project_path, sample, 'htseq_counts.sam')),
