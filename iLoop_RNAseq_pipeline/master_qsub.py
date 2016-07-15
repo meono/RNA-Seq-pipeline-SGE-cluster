@@ -124,7 +124,7 @@ samtools sort -@ PPN - {}'''.format(defaults['hisat2_options'],
                                                                    (os.path.join(project_path, sample, 'htseq_counts.sam')),
                                                                    (os.path.join(project_path, sample, 'htseq_counts.out')))]
 
-    return '\n\n'.join(jobstr).replace('PPN', ppn)
+    return '\n\n'.join(jobstr).replace('PPN', str(ppn))
 
 
 def mergejob(project_path, mapjobIDs, ppn='1', walltime='01:00:00', ref=None, defaults=None):
@@ -261,7 +261,7 @@ def job_submitter(project_path, groups, ref, defaults, ppn='8', readtype='raw'):
                 mapjobIDs.append(out.split(b'.')[0])
                 os.system('sleep 1')
     except Exception as ex:
-        logger.error('Problem with map and link. RNAseq analysis is stopped.\nAn exception of type {} occured. Arguments:\n{1!r}'.format(type(ex).__name__, ex.args))
+        logger.error('Problem with map and link. RNAseq analysis is stopped.\nAn exception of type {} occured. Arguments:\n{}'.format(type(ex).__name__, ex.args))
         return False
 
     # generate and submit merge job
@@ -289,7 +289,7 @@ def job_submitter(project_path, groups, ref, defaults, ppn='8', readtype='raw'):
         mergejob = out.split(b'.')[0]
         os.system('sleep 1')
     except Exception as ex:
-        logger.error('Problem with Cuffmerge. RNAseq analysis is stopped.\nAn exception of type {} occured. Arguments:\n{1!r}'.format(type(ex).__name__, ex.args))
+        logger.error('Problem with Cuffmerge. RNAseq analysis is stopped.\nAn exception of type {} occured. Arguments:\n{}'.format(type(ex).__name__, ex.args))
         return False
 
     # generate and submit cuffquant jobs
@@ -308,7 +308,7 @@ def job_submitter(project_path, groups, ref, defaults, ppn='8', readtype='raw'):
                 quantjobsIDs.append(out.split(b'.')[0])
                 os.system('sleep 1')
     except Exception as ex:
-        logger.error('Problem with Cuffquant jobs. RNAseq analysis is stopped.\nAn exception of type {} occured. Arguments:\n{1!r}'.format(type(ex).__name__, ex.args))
+        logger.error('Problem with Cuffquant jobs. RNAseq analysis is stopped.\nAn exception of type {} occured. Arguments:\n{}'.format(type(ex).__name__, ex.args))
         return False
 
     # generate and submit cuffdiff job
@@ -330,7 +330,7 @@ def job_submitter(project_path, groups, ref, defaults, ppn='8', readtype='raw'):
         diffjob = out.split(b'.')[0]
         os.system('sleep 1')
     except Exception as ex:
-        logger.error('Problem with Cuffdiff. RNAseq analysis is stopped.\nAn exception of type {} occured. Arguments:\n{1!r}'.format(type(ex).__name__, ex.args))
+        logger.error('Problem with Cuffdiff. RNAseq analysis is stopped.\nAn exception of type {} occured. Arguments:\n{}'.format(type(ex).__name__, ex.args))
         return False
 
     return True
