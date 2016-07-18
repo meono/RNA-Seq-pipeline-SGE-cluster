@@ -177,11 +177,11 @@ def merge_job(project_path, mapjobIDs, ref, defaults, ppn='1', walltime='01:00:0
     logging.info('Using cuffmerge options: {}'.format(defaults['cuffmerge_options']))
     jobstr = []
     jobstr += [job_header.replace('JOBNAME', 'cuffmerge')
-                   .replace('WALTIME', walltime)
-                   .replace('PROJECT', defaults['project'])
-                   .replace('JOB_OUTPUTS', os.path.abspath(os.path.join(project_path, 'job_outputs')))
-                   .replace('EMAILADDRESS', defaults['email'])]
-
+                         .replace('WALTIME', walltime)
+                         .replace('PROJECT', defaults['project'])
+                         .replace('JOB_OUTPUTS', os.path.abspath(os.path.join(project_path, 'job_outputs')))
+                         .replace('EMAILADDRESS', defaults['email'])]
+    logging.debug('header done.')
     # make this job depend on successful completion of previous jobs: mapandlink_jobs
     jobstr += ['#PBS -W depend=afterok:{}'.format(':'.join([mapjob for mapjob in mapjobIDs]))]
     logging.debug('dependency done.')
