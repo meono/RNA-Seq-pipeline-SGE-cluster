@@ -2,6 +2,7 @@ from __future__ import division, print_function
 import os
 import subprocess
 import logging
+import sys
 
 logger = logging.getLogger(__name__)
 
@@ -350,6 +351,7 @@ def job_submitter(project_path, groups, ref, defaults, ppn='8', readtype='raw', 
 
     logger.debug('try printing job ids')
     logger.debug('{}'.format(','.join(str(m) for m in mapjobIDs)))
+    logger.debug('{}'.format(','.join(m.decode(sys.getdefaultencoding()) for m in mapjobIDs)))
     logger.debug('{}'.format(mapjobIDs))
     # generate and submit merge job
     if ('cuffmerge' in jobs) or (jobs == []):
