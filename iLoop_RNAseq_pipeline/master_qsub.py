@@ -337,8 +337,9 @@ def job_submitter(project_path, groups, ref, defaults, ppn='8', readtype='raw', 
                     type(ex).__name__, ex.args))
             return False
 
-        if not check_mapandlink(groups, project_path):
-            return False
+        # TODO: this check should wait for the end of jobs. Ideally, should be included in their respective job files. Ignoring for now.
+        # if not check_mapandlink(groups, project_path):
+        #     return False
 
     else:
         mapjobIDs = ['']
