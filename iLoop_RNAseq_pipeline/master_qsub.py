@@ -42,7 +42,7 @@ def check_mapandlink(groups, project_path):
     """Check if the cufflinks run generated HIDATA issues."""
     # TODO: This should expand to existence of previous results and possibly other data issues.
     check = True
-    for group in groups.values:
+    for group in groups.values():
         for replicate in group.keys():
             cfs = [file for file in os.listdir(os.path.join(project_path, replicate)) if file.endswith('tracking')]
             for file in cfs:
