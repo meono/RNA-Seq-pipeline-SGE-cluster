@@ -188,7 +188,7 @@ def quant_jobs(project_path, sample, mergejob, ppn='8', walltime='12:00:00', ref
 module load ngs tools cufflinks/2.2.1 tophat/2.1.1 bowtie2/2.2.5''']
 
     if ref.get('bowtie_indexes'):
-        jobstr += ['export BOWTIE_INDEXES={}}'.format(ref['bowtie_indexes'])]
+        jobstr += ['export BOWTIE_INDEXES={}'.format(ref['bowtie_indexes'])]
 
     jobstr += ['cuffquant {} -p PPN {} -o {} {} {} '.format(defaults['cuffquant_options'],
                                                             ('-M ' + ref['gff_mask']) if ref.get('gff_mask') else '',
@@ -363,8 +363,8 @@ def job_submitter(project_path, groups, ref, defaults, ppn='8', readtype='raw', 
                     os.system('sleep 1')
         except Exception as ex:
             logger.error(
-                'Problem with Cuffquant jobs. RNAseq analysis is stopped.\nAn exception of type {} occured. Arguments:\n{}\nBased in line {}'.format(
-                    type(ex).__name__, ex.args, sys.exc_info()[2].tb_lineno))
+                'Problem with Cuffquant jobs. RNAseq analysis is stopped.\nAn exception of type {} occured. Arguments:\n{}'.format(
+                    type(ex).__name__, ex.args))
             return False
 
     # generate and submit cuffdiff job
