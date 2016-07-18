@@ -70,13 +70,13 @@ module load ngs FastQC/0.11.2''']
 
 def mapandlink_jobs(project_path, sample, reads, defaults, ref, jobs, ppn='8', walltime='12:00:00'):
 
+    mljobs = ['hisat2', 'stringtie', 'cufflinks', 'htseq-count']
     jobstr = []
-    jobstr += [job_header.replace('JOBNAME', '_'.join([sample] + jobs)) \
-                   .replace('WALTIME', walltime) \
-                   # .replace('PPN', ppn)\
-                   .replace('PROJECT', defaults['project']) \
-                   .replace('JOB_OUTPUTS', os.path.join(project_path, 'job_outputs')) \
-                   .replace('EMAILADDRESS', defaults['email'])]
+    jobstr += [job_header.replace('JOBNAME', '_'.join([sample] + [job for job in jobs if job in mljobs]))
+                         .replace('WALTIME', walltime)
+                         .replace('PROJECT', defaults['project'])
+                         .replace('JOB_OUTPUTS', os.path.join(project_path, 'job_outputs'))
+                         .replace('EMAILADDRESS', defaults['email'])]
 
     jobstr += ['''# Load modules needed by myapplication.x
 module load ngs tools samtools/1.2 bowtie2/2.2.5 cufflinks/2.2.1
@@ -147,12 +147,11 @@ samtools sort -@ PPN - {}'''.format(defaults['hisat2_options'],
 def merge_job(project_path, mapjobIDs, ref, defaults, ppn='1', walltime='01:00:00'):
     logging.info('Using cuffmerge options: {}'.format(defaults['cuffmerge_options']))
     jobstr = []
-    jobstr += [job_header.replace('JOBNAME', 'cuffmerge') \
-                   .replace('WALTIME', walltime) \
-                   # .replace('PPN', ppn)\
-                   .replace('PROJECT', defaults['project']) \
-                   .replace('JOB_OUTPUTS', os.path.join(project_path, 'job_outputs')) \
-                   .replace('EMAILADDRESS', defaults['email'])]
+    jobstr += [job_header.replace('JOBNAME', 'cuffmerge')
+                         .replace('WALTIME', walltime)
+                         .replace('PROJECT', defaults['project'])
+                         .replace('JOB_OUTPUTS', os.path.join(project_path, 'job_outputs'))
+                         .replace('EMAILADDRESS', defaults['email'])]
 
     # make this job depend on successful completion of previous jobs: mapandlink_jobs
     jobstr += ['#PBS -W depend=afterok:{}'.format(':'.join([mapjob for mapjob in mapjobIDs]))]
@@ -160,13 +159,15 @@ def merge_job(project_path, mapjobIDs, ref, defaults, ppn='1', walltime='01:00:0
     jobstr += ['''# Load modules needed by myapplication.x
 module load ngs tools cufflinks/2.2.1 tophat/2.1.1 bowtie2/2.2.5''']
 
-    jobstr += ['cuffmerge {} {} -p PPN -o {} assemblies.txt'.format(defaults['cufflinks_options'],
+    jobstr += ['cuffmerge {} {} -p PPN -o {} {}'.format(defaults['cuffmerge_options'],
                                                                     (('-g ' + ref['gff_genome']) if ref.get(
                                                                         'gff_genome') else ''),
                                                                     (('-s ' + ref['fasta_genome']) if ref.get(
                                                                         'fasta_genome') else ''),
                                                                     (os.path.join(project_path, 'cmerge',
-                                                                                  'merged_asm')))]
+                                                                                  'merged_asm'))),
+                                                                    (os.path.join(project_path, 'cmerge',
+                                                                                  'assemblies.txt'))]
 
     return '\n\n'.join(jobstr).replace('PPN', ppn)
 
@@ -174,12 +175,11 @@ module load ngs tools cufflinks/2.2.1 tophat/2.1.1 bowtie2/2.2.5''']
 def quant_jobs(project_path, sample, mergejob, ppn='8', walltime='12:00:00', ref=None, defaults=None):
     logging.info('Using cuffquant options: {}'.format(defaults['cuffquant_options']))
     jobstr = []
-    jobstr += [job_header.replace('JOBNAME', '_'.join([sample] + 'cuffquant')) \
-                   .replace('WALTIME', walltime) \
-                   # .replace('PPN', ppn)\
-                   .replace('PROJECT', defaults['project']) \
-                   .replace('JOB_OUTPUTS', os.path.join(project_path, 'job_outputs')) \
-                   .replace('EMAILADDRESS', defaults['email'])]
+    jobstr += [job_header.replace('JOBNAME', '_'.join([sample] + 'cuffquant'))
+                         .replace('WALTIME', walltime)
+                         .replace('PROJECT', defaults['project'])
+                         .replace('JOB_OUTPUTS', os.path.join(project_path, 'job_outputs'))
+                         .replace('EMAILADDRESS', defaults['email'])]
 
     # make this job depend on successful completion of previous jobs: merge_job
     jobstr += ['#PBS –W depend=afterok:{}'.format(mergejob)]
@@ -207,12 +207,11 @@ module load ngs tools cufflinks/2.2.1 tophat/2.1.1 bowtie2/2.2.5''']
 def diff_job(project_path, groups, quantjobsIDs, ppn='8', walltime='24:00:00', ref=None, defaults=None):
     logging.info('Using cuffdiff options: {}'.format(defaults['cuffdiff_options']))
     jobstr = []
-    jobstr += [job_header.replace('JOBNAME', 'cuffdiff') \
-                   .replace('WALTIME', walltime) \
-                   # .replace('PPN', ppn)\
-                   .replace('PROJECT', defaults['project']) \
-                   .replace('JOB_OUTPUTS', os.path.join(project_path, 'job_outputs')) \
-                   .replace('EMAILADDRESS', defaults['email'])]
+    jobstr += [job_header.replace('JOBNAME', 'cuffdiff')
+                         .replace('WALTIME', walltime)
+                         .replace('PROJECT', defaults['project'])
+                         .replace('JOB_OUTPUTS', os.path.join(project_path, 'job_outputs'))
+                         .replace('EMAILADDRESS', defaults['email'])]
 
     # make this job depend on successful completion of previous jobs: mapandlink_jobs
     jobstr += ['#PBS –W depend=afterok:{}'.format(':'.join([quantjobsID for quantjobsID in quantjobsIDs]))]
