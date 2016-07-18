@@ -29,8 +29,8 @@ def main(arg):
                         level=logging.DEBUG)
     logger = logging.getLogger(__name__)
     logger.info('\n-----\nRNAseq pipeline started\n----')
-    if arg.jobs is not None:
-        jobs = arg.jobs.split(',')
+    if args.jobs is not None:
+        jobs = args.jobs.split(',')
     else:
         jobs = None
     defaults = ip.get_defaults()
