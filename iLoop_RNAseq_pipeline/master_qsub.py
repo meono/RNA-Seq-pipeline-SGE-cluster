@@ -294,14 +294,18 @@ def job_submitter(project_path, groups, ref, defaults, ppn='8', readtype='raw', 
                     samples.append(sample)
                     js = mapandlink_jobs(project_path=project_path, sample=sample, reads=reads, ref=ref,
                                          defaults=defaults, ppn=ppn, jobs=jobs)
+                    logging.debug('script done')
                     jfn = os.path.join(project_path, 'job_files', 'job_{}_mapandlink.sh'.format(sample))
                     jf = open(jfn, 'w')
                     jf.write(js)
                     jf.close()
+                    logging.debug('write done')
                     p = subprocess.Popen(['qsub', jfn], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
                     p.wait()
+                    logging.debug('submit done')
                     out, err = p.communicate()
                     mapjobIDs.append(out.split(b'.')[0])
+                    logging.debug('IDs done')
                     os.system('sleep 0.5')
         except Exception as ex:
             logger.error(
