@@ -12,7 +12,7 @@ job_header = \
 # -- Name of the job ---
 #PBS -N JOBNAME
 # -- estimated wall clock time (execution time): hh:mm:ss --
-#PBS -l walltime=WALTIME
+#PBS -l walltime=WALLTIME
 # -- number of processors/cores/nodes --
 #PBS -l nodes=1:ppn=PPN
 # -- output destination --
@@ -51,7 +51,7 @@ def check_mapandlink(groups, project_path):
                     cf.close()
                 if 'HIDATA' in s:
                     check = False
-                    logging.error('{} had HIDATA issue and need to be repeated with a larger bundle size.'.format(replicate))
+                    logger.error('{} had HIDATA issue and need to be repeated with a larger bundle size.'.format(replicate))
     return check
 
 
@@ -68,7 +68,7 @@ def fastqc_job(project_path, groups, output_path, defaults, ppn='8', walltime='0
 
     jobstr = []
     jobstr += [job_header.replace('JOBNAME', 'fastqc')
-                   .replace('WALTIME', walltime)
+                   .replace('WALLTIME', walltime)
                    .replace('PROJECT', defaults['project'])
                    .replace('JOB_OUTPUTS', os.path.abspath(os.path.join(project_path, 'job_outputs')))
                    .replace('EMAILADDRESS', defaults['email'])]
@@ -90,7 +90,7 @@ def mapandlink_jobs(project_path, sample, reads, defaults, ref, jobs, ppn='8', w
         jobs = mljobs
     jobstr = []
     jobstr += [job_header.replace('JOBNAME', '_'.join([sample] + [job for job in jobs if job in mljobs]))
-                   .replace('WALTIME', walltime)
+                   .replace('WALLTIME', walltime)
                    .replace('PROJECT', defaults['project'])
                    .replace('JOB_OUTPUTS', os.path.abspath(os.path.join(project_path, 'job_outputs')))
                    .replace('EMAILADDRESS', defaults['email'])]
@@ -110,7 +110,7 @@ export PATH''']
     R2reads.sort()
 
     if (ref.get('hisat2_indexes')) and ('hisat2' in jobs):
-        logging.info('Using hisat2 options: {}'.format(defaults['hisat2_options']))
+        logger.info('Using hisat2 options: {}'.format(defaults['hisat2_options']))
         jobstr += ['''echo "hisat2"
 hisat2 {} -p PPN -x {} {} {} 2>{} | \
 samtools view -@ PPN -hbu - | \
@@ -123,7 +123,7 @@ samtools sort -@ PPN - {}'''.format(defaults['hisat2_options'],
 
     if 'stringtie' in jobs:
         logger.warning('Beware: Stringtie does not allow masking for now.')
-        logging.info('Using stringtie options: {}'.format(defaults['stringtie_options']))
+        logger.info('Using stringtie options: {}'.format(defaults['stringtie_options']))
         jobstr += ['echo "stringtie"\nstringtie {} -p PPN {} -o {} -A {} {}'.format(defaults['stringtie_options'],
                                                                                     (('-G ' + ref[
                                                                                         'gff_genome']) if ref.get(
@@ -142,7 +142,7 @@ samtools sort -@ PPN - {}'''.format(defaults['hisat2_options'],
                                                                                                      'accepted_hits.sorted.bam')))]
 
     if 'cufflinks' in jobs:
-        logging.info('Using cufflinks options: {}'.format(defaults['cufflinks_options']))
+        logger.info('Using cufflinks options: {}'.format(defaults['cufflinks_options']))
         jobstr += ['echo "cufflinks"\ncufflinks {} -p PPN {} {} -o {} {}'.format(defaults['cufflinks_options'],
                                                                                  ('-G ' + ref['gff_genome']) if ref.get(
                                                                                      'gff_genome') else '',
@@ -156,7 +156,7 @@ samtools sort -@ PPN - {}'''.format(defaults['hisat2_options'],
                                                                                                   'accepted_hits.sorted.bam'))))]
 
     if 'htseq-count' in jobs:
-        logging.info('Using htseq options: {}'.format(defaults['htseq_options']))
+        logger.info('Using htseq options: {}'.format(defaults['htseq_options']))
         jobstr += ['echo "htseq"\nhtseq-count {} -f bam {} {} -o {} > {}'.format(defaults['htseq_options'],
                                                                                  (os.path.abspath(
                                                                                      os.path.join(project_path, sample,
@@ -174,21 +174,21 @@ samtools sort -@ PPN - {}'''.format(defaults['hisat2_options'],
 
 
 def merge_job(project_path, mapjobIDs, ref, defaults, ppn='1', walltime='01:00:00'):
-    logging.info('Using cuffmerge options: {}'.format(defaults['cuffmerge_options']))
+    logger.info('Using cuffmerge options: {}'.format(defaults['cuffmerge_options']))
     jobstr = []
     jobstr += [job_header.replace('JOBNAME', 'cuffmerge')
-                         .replace('WALTIME', walltime)
+                         .replace('WALLTIME', walltime)
                          .replace('PROJECT', defaults['project'])
                          .replace('JOB_OUTPUTS', os.path.abspath(os.path.join(project_path, 'job_outputs')))
                          .replace('EMAILADDRESS', defaults['email'])]
-    logging.debug('header done.')
+    logger.debug('header done.')
     # make this job depend on successful completion of previous jobs: mapandlink_jobs
     jobstr += ['#PBS -W depend=afterok:{}'.format(':'.join([mapjob for mapjob in mapjobIDs]))]
-    logging.debug('dependency done.')
+    logger.debug('dependency done.')
 
     jobstr += ['''# Load modules needed by myapplication.x
 module load ngs tools cufflinks/2.2.1 tophat/2.1.1 bowtie2/2.2.5''']
-    logging.debug('modules done.')
+    logger.debug('modules done.')
     jobstr += ['cuffmerge {} {} -p PPN {} -o {} {}'.format(defaults['cuffmerge_options'],
                                                            (('-g ' + ref['gff_genome']) if ref.get(
                                                                'gff_genome') else ''),
@@ -198,16 +198,16 @@ module load ngs tools cufflinks/2.2.1 tophat/2.1.1 bowtie2/2.2.5''']
                                                                                          'merged_asm'))),
                                                            (os.path.abspath(os.path.join(project_path, 'cmerge',
                                                                                          'assemblies.txt'))))]
-    logging.debug('command done.')
+    logger.debug('command done.')
 
     return '\n\n'.join(jobstr).replace('PPN', ppn)
 
 
 def quant_jobs(project_path, sample, mergejob, ref, defaults, ppn='8', walltime='12:00:00'):
-    logging.info('Using cuffquant options: {}'.format(defaults['cuffquant_options']))
+    logger.info('Using cuffquant options: {}'.format(defaults['cuffquant_options']))
     jobstr = []
     jobstr += [job_header.replace('JOBNAME', '_'.join([sample] + ['cuffquant']))
-                   .replace('WALTIME', walltime)
+                   .replace('WALLTIME', walltime)
                    .replace('PROJECT', defaults['project'])
                    .replace('JOB_OUTPUTS', os.path.abspath(os.path.join(project_path, 'job_outputs')))
                    .replace('EMAILADDRESS', defaults['email'])]
@@ -236,10 +236,10 @@ module load ngs tools cufflinks/2.2.1 tophat/2.1.1 bowtie2/2.2.5''']
 
 
 def diff_job(project_path, groups, quantjobsIDs, ppn='8', walltime='24:00:00', ref=None, defaults=None):
-    logging.info('Using cuffdiff options: {}'.format(defaults['cuffdiff_options']))
+    logger.info('Using cuffdiff options: {}'.format(defaults['cuffdiff_options']))
     jobstr = []
     jobstr += [job_header.replace('JOBNAME', 'cuffdiff')
-                   .replace('WALTIME', walltime)
+                   .replace('WALLTIME', walltime)
                    .replace('PROJECT', defaults['project'])
                    .replace('JOB_OUTPUTS', os.path.abspath(os.path.join(project_path, 'job_outputs')))
                    .replace('EMAILADDRESS', defaults['email'])]
@@ -348,6 +348,7 @@ def job_submitter(project_path, groups, ref, defaults, ppn='8', readtype='raw', 
     else:
         mapjobIDs = ['']
 
+    logger.debug('{}'.format(mapjobIDs))
     # generate and submit merge job
     if ('cuffmerge' in jobs) or (jobs == []):
         try:
@@ -360,7 +361,7 @@ def job_submitter(project_path, groups, ref, defaults, ppn='8', readtype='raw', 
             af.write('\n'.join([os.path.join(project_path, replicate, 'transcripts.gtf') for group in groups.values()
                                 for replicate in group.keys()]))
             af.close()
-            logging.info('"Assemblies.txt" is generated under "cmerge".')
+            logger.info('"Assemblies.txt" is generated under "cmerge".')
         except Exception as ex:
             logger.error(
                 '"Assemblies.txt for cuffmerge could not be generated.\nAn exception of type {} occured. Arguments:\n{}'.format(
@@ -369,18 +370,18 @@ def job_submitter(project_path, groups, ref, defaults, ppn='8', readtype='raw', 
 
         try:
             js = merge_job(project_path=project_path, mapjobIDs=mapjobIDs, ref=ref, defaults=defaults)
-            logging.debug('script done.')
+            logger.debug('script done.')
             jfn = os.path.join(project_path, 'job_files', 'job_cuffmerge.sh')
             jf = open(jfn, 'w')
             jf.write(js)
-            logging.debug('write done.')
+            logger.debug('write done.')
             jf.close()
             p = subprocess.Popen(['qsub', jfn], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-            logging.debug('submit done.')
+            logger.debug('submit done.')
             p.wait()
             out, err = p.communicate()
             mergejob = out.split(b'.')[0]
-            logging.debug('ID done.')
+            logger.debug('ID done.')
             os.system('sleep 0.5')
         except Exception as ex:
             logger.error(
@@ -441,5 +442,5 @@ def job_submitter(project_path, groups, ref, defaults, ppn='8', readtype='raw', 
                     type(ex).__name__, ex.args))
             return False
 
-    logging.info('All jobs are completed.')
+    logger.info('All jobs are completed.')
     return True
