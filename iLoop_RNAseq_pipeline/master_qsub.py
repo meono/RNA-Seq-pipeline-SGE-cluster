@@ -172,7 +172,7 @@ module load ngs tools cufflinks/2.2.1 tophat/2.1.1 bowtie2/2.2.5''']
     return '\n\n'.join(jobstr).replace('PPN', ppn)
 
 
-def quant_jobs(project_path, sample, mergejob, ppn='8', walltime='12:00:00', ref=None, defaults=None):
+def quant_jobs(project_path, sample, mergejob, ref, defaults, ppn='8', walltime='12:00:00'):
     logging.info('Using cuffquant options: {}'.format(defaults['cuffquant_options']))
     jobstr = []
     jobstr += [job_header.replace('JOBNAME', '_'.join([sample] + ['cuffquant']))
@@ -180,15 +180,19 @@ def quant_jobs(project_path, sample, mergejob, ppn='8', walltime='12:00:00', ref
                          .replace('PROJECT', defaults['project'])
                          .replace('JOB_OUTPUTS', os.path.join(project_path, 'job_outputs'))
                          .replace('EMAILADDRESS', defaults['email'])]
+    logging.debug('header done')
 
     # make this job depend on successful completion of previous jobs: merge_job
     jobstr += ['#PBS -W depend=afterok:{}'.format(mergejob)]
+    logging.debug('dependence done')
 
     jobstr += ['''# Load modules needed by myapplication.x
 module load ngs tools cufflinks/2.2.1 tophat/2.1.1 bowtie2/2.2.5''']
+    logging.debug('modules done')
 
     if ref.get('bowtie_indexes'):
         jobstr += ['export BOWTIE_INDEXES={}'.format(ref['bowtie_indexes'])]
+        logging.debug('bowtie done')
 
     jobstr += ['cuffquant {} -p PPN {} -o {} {} {} '.format(defaults['cuffquant_options'],
                                                             ('-M ' + ref['gff_mask']) if ref.get('gff_mask') else '',
@@ -198,6 +202,7 @@ module load ngs tools cufflinks/2.2.1 tophat/2.1.1 bowtie2/2.2.5''']
                                                                           'merged.gtf')),
                                                             (os.path.join(project_path, sample,
                                                                           'accepted_hits.sorted.bam')))]
+    logging.debug('command done')
 
     return '\n\n'.join(jobstr).replace('PPN', ppn)
 
@@ -266,7 +271,7 @@ def job_submitter(project_path, groups, ref, defaults, ppn='8', readtype='raw', 
                 p.wait()
                 out, err = p.communicate()
                 qcjobID = out.split(b'.')[0]
-                os.system('sleep 1')
+                os.system('sleep 0.5')
             else:
                 logger.info('Existing fastqc files found. Skipping quality check job.')
                 qcjobID = True
@@ -297,7 +302,7 @@ def job_submitter(project_path, groups, ref, defaults, ppn='8', readtype='raw', 
                     p.wait()
                     out, err = p.communicate()
                     mapjobIDs.append(out.split(b'.')[0])
-                    os.system('sleep 1')
+                    os.system('sleep 0.5')
         except Exception as ex:
             logger.error(
                 'Problem with map and link. RNAseq analysis is stopped.\nAn exception of type {} occured. Arguments:\n{}'.format(
@@ -335,7 +340,7 @@ def job_submitter(project_path, groups, ref, defaults, ppn='8', readtype='raw', 
             p.wait()
             out, err = p.communicate()
             mergejob = out.split(b'.')[0]
-            os.system('sleep 1')
+            os.system('sleep 0.5')
         except Exception as ex:
             logger.error(
                 'Problem with Cuffmerge. RNAseq analysis is stopped.\nAn exception of type {} occured. Arguments:\n{}'.format(
@@ -360,7 +365,7 @@ def job_submitter(project_path, groups, ref, defaults, ppn='8', readtype='raw', 
                     p.wait()
                     out, err = p.communicate()
                     quantjobsIDs.append(out.split(b'.')[0])
-                    os.system('sleep 1')
+                    os.system('sleep 0.5')
         except Exception as ex:
             logger.error(
                 'Problem with Cuffquant jobs. RNAseq analysis is stopped.\nAn exception of type {} occured. Arguments:\n{}'.format(
@@ -386,7 +391,7 @@ def job_submitter(project_path, groups, ref, defaults, ppn='8', readtype='raw', 
             p.wait()
             out, err = p.communicate()
             diffjob = out.split(b'.')[0]
-            os.system('sleep 1')
+            os.system('sleep 0.5')
         except Exception as ex:
             logger.error(
                 'Problem with Cuffdiff. RNAseq analysis is stopped.\nAn exception of type {} occured. Arguments:\n{}'.format(
