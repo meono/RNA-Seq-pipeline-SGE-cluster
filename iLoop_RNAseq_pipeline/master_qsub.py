@@ -182,7 +182,7 @@ def quant_jobs(project_path, sample, mergejob, ppn='8', walltime='12:00:00', ref
                          .replace('EMAILADDRESS', defaults['email'])]
 
     # make this job depend on successful completion of previous jobs: merge_job
-    jobstr += ['#PBS –W depend=afterok:{}'.format(mergejob)]
+    jobstr += ['#PBS -W depend=afterok:{}'.format(mergejob)]
 
     jobstr += ['''# Load modules needed by myapplication.x
 module load ngs tools cufflinks/2.2.1 tophat/2.1.1 bowtie2/2.2.5''']
@@ -192,8 +192,6 @@ module load ngs tools cufflinks/2.2.1 tophat/2.1.1 bowtie2/2.2.5''']
 
     jobstr += ['cuffquant {} -p PPN {} -o {} {} {} '.format(defaults['cuffquant_options'],
                                                             ('-M ' + ref['gff_mask']) if ref.get('gff_mask') else '',
-                                                            (os.path.join(project_path, sample,
-                                                                          'accepted_hits.sorted.bam')),
                                                             ('-b ' + ref['fasta_genome']) if ref.get(
                                                                 'fasta_genome') else '',
                                                             (os.path.join(project_path, 'cmerge', 'merged_asm',
