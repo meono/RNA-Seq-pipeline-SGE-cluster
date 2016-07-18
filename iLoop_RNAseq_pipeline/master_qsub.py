@@ -157,7 +157,7 @@ def merge_job(project_path, mapjobIDs, ppn='1', walltime='01:00:00', ref=None, d
                    .replace('EMAILADDRESS', defaults['email'])]
 
     # make this job depend on successful completion of previous jobs: mapandlink_jobs
-    jobstr += ['#PBS –W depend=afterok:{}'.format(':'.join([mapjob for mapjob in mapjobIDs]))]
+    jobstr += ['#PBS -W depend=afterok:{}'.format(':'.join([mapjob for mapjob in mapjobIDs]))]
 
     jobstr += ['''# Load modules needed by myapplication.x
 module load ngs tools cufflinks/2.2.1 tophat/2.1.1 bowtie2/2.2.5''']
@@ -319,6 +319,7 @@ def job_submitter(project_path, groups, ref, defaults, ppn='8', readtype='raw', 
             af.write('\n'.join([os.path.join(project_path, replicate, 'transcripts.gtf') for group in groups.values()
                                for replicate in group.keys()]))
             af.close()
+            logging.info('"Assemblies.txt" is generated under "cmerge".')
         except Exception as ex:
             logger.error(
                 '"Assemblies.txt for cuffmerge could not be generated.\nAn exception of type {} occured. Arguments:\n{}'.format(
