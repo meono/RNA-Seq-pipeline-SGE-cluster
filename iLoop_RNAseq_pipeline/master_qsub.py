@@ -36,14 +36,14 @@ def check_fastqc(groups, output_path):
             return False
     return True
 
-def fastqc_job(project_path, groups, output_path, defaults, ppn='8', walltime ='02:00:00', ):
+def fastqc_job(project_path, groups, output_path, defaults, ppn='8', walltime ='02:00:00'):
     """Runs fastqc for all the reads.
 
     reads: dictionary from set_project function
     output_path: path for the output of fastqc
                 - ideally, project_path/reads/QC_output/XYZ where XYZ denotes raw or trimmed
      """
-    # runs a quality check on fastq files
+
 
     if not os.path.exists(output_path):
         os.makedirs(output_path, exist_ok=True)
@@ -208,7 +208,7 @@ module load ngs tools cufflinks/2.2.1 tophat/2.1.1 bowtie2/2.2.5''']
     return '\n\n'.join(jobstr).replace('PPN', ppn)
 
 
-def job_submitter(project_path, groups, ref, defaults, ppn='8', readtype='raw'):
+def job_submitter(project_path, groups, ref, defaults, ppn='8', readtype='raw', jobs=None):
 
     try:
         os.mkdir(os.path.join(project_path, 'job_files'))
@@ -221,25 +221,26 @@ def job_submitter(project_path, groups, ref, defaults, ppn='8', readtype='raw'):
         logger.warning('Folder for job outputs exists.')
 
     # do quality checks
-    try:
-        output_path = os.path.join(project_path, 'reads', 'QC_output', readtype)
-        if not check_fastqc(groups=groups, output_path=output_path):
-            js = fastqc_job(project_path=project_path, groups=groups, output_path=output_path, defaults=defaults)
-            jfn = os.path.join(project_path, 'job_files', 'job_fastqc.sh')
-            jf = open(jfn, 'w')
-            jf.write(js)
-            jf.close()
-            p = subprocess.Popen(['qsub', jfn], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-            p.wait()
-            out, err = p.communicate()
-            qcjobID = out.split(b'.')[0]
-            os.system('sleep 1')
-        else:
-            logger.info('Existing fastqc files found. Skipping quality check job.')
-            qcjobID = True
-    except Exception as ex:
-        logger.error('Problem with FastQC. RNAseq analysis is stopped.\nAn exception of type {} occured. Arguments:\n{}'.format(type(ex).__name__, ex.args))
-        return False
+    if ('fastqc' in jobs) or (jobs == None):
+        try:
+            output_path = os.path.join(project_path, 'reads', 'QC_output', readtype)
+            if not check_fastqc(groups=groups, output_path=output_path):
+                js = fastqc_job(project_path=project_path, groups=groups, output_path=output_path, defaults=defaults)
+                jfn = os.path.join(project_path, 'job_files', 'job_fastqc.sh')
+                jf = open(jfn, 'w')
+                jf.write(js)
+                jf.close()
+                p = subprocess.Popen(['qsub', jfn], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                p.wait()
+                out, err = p.communicate()
+                qcjobID = out.split(b'.')[0]
+                os.system('sleep 1')
+            else:
+                logger.info('Existing fastqc files found. Skipping quality check job.')
+                qcjobID = True
+        except Exception as ex:
+            logger.error('Problem with FastQC. RNAseq analysis is stopped.\nAn exception of type {} occured. Arguments:\n{}'.format(type(ex).__name__, ex.args))
+            return False
 
     # TODO: Come up with a qc threshold to continue or terminate jobs. Use qcjobID from above.
 
@@ -251,7 +252,7 @@ def job_submitter(project_path, groups, ref, defaults, ppn='8', readtype='raw'):
             for sample, reads in group.items():
                 samples.append(sample)
                 js = mapandlink_jobs(project_path=project_path, sample=sample, reads=reads, ref=ref,
-                                     defaults=defaults, ppn=ppn)
+                                     defaults=defaults, ppn=ppn, jobs=jobs)
                 jfn = os.path.join(project_path, 'job_files', 'job_{}_mapandlink.sh'.format(sample))
                 jf = open(jfn, 'w')
                 jf.write(js)
@@ -266,76 +267,79 @@ def job_submitter(project_path, groups, ref, defaults, ppn='8', readtype='raw'):
         return False
 
     # generate and submit merge job
-    try:
-        os.mkdir(os.path.join(project_path, 'cmerge'))
-    except FileExistsError:
-        logger.warning('Folder for cuffmerge exists. Previously generated files will be overwritten.')
+    if ('cuffmerge' in jobs) or (jobs == None):
+        try:
+            os.mkdir(os.path.join(project_path, 'cmerge'))
+        except FileExistsError:
+            logger.warning('Folder for cuffmerge exists. Previously generated files will be overwritten.')
 
-    try:
-        af = open(os.path.join([project_path, 'cmerge', 'assemblies.txt']), 'w')
-        af.write('\n'.join([os.path.join(project_path, replicate, 'transcripts.gtf') for group in groups.values() for replicate in group.keys()]))
-        af.close()
-    except Exception as ex:
-        logger.error(
-            '"Assemblies.txt for cuffmerge could not be generated.\nAn exception of type {} occured. Arguments:\n{}'.format(
-                type(ex).__name__, ex.args))
-        return False
+        try:
+            af = open(os.path.join([project_path, 'cmerge', 'assemblies.txt']), 'w')
+            af.write('\n'.join([os.path.join(project_path, replicate, 'transcripts.gtf') for group in groups.values() for replicate in group.keys()]))
+            af.close()
+        except Exception as ex:
+            logger.error(
+                '"Assemblies.txt for cuffmerge could not be generated.\nAn exception of type {} occured. Arguments:\n{}'.format(
+                    type(ex).__name__, ex.args))
+            return False
 
-    try:
-        js = merge_job(project_path=project_path, mapjobs=mapjobIDs, ref=ref, defaults=defaults)
-        jfn = os.path.join(project_path, 'job_files', 'job_cuffmerge.sh')
-        jf = open(jfn, 'w')
-        jf.write(js)
-        jf.close()
-        p = subprocess.Popen(['qsub', jfn], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        p.wait()
-        out, err = p.communicate()
-        mergejob = out.split(b'.')[0]
-        os.system('sleep 1')
-    except Exception as ex:
-        logger.error('Problem with Cuffmerge. RNAseq analysis is stopped.\nAn exception of type {} occured. Arguments:\n{}'.format(type(ex).__name__, ex.args))
-        return False
+        try:
+            js = merge_job(project_path=project_path, mapjobs=mapjobIDs, ref=ref, defaults=defaults)
+            jfn = os.path.join(project_path, 'job_files', 'job_cuffmerge.sh')
+            jf = open(jfn, 'w')
+            jf.write(js)
+            jf.close()
+            p = subprocess.Popen(['qsub', jfn], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            p.wait()
+            out, err = p.communicate()
+            mergejob = out.split(b'.')[0]
+            os.system('sleep 1')
+        except Exception as ex:
+            logger.error('Problem with Cuffmerge. RNAseq analysis is stopped.\nAn exception of type {} occured. Arguments:\n{}'.format(type(ex).__name__, ex.args))
+            return False
 
     # generate and submit cuffquant jobs
-    try:
-        for group_name, group in groups.items():
-            quantjobsIDs = []
-            for sample, reads in group.items():
-                js = quant_jobs(project_path=project_path, sample=sample, mergejob=mergejob, ref=ref, defaults=defaults, ppn=ppn)
-                jfn = os.path.join(project_path, 'job_files', 'job_{}_cuffquant.sh'.format(sample))
-                jf = open(jfn, 'w')
-                jf.write(js)
-                jf.close()
-                p = subprocess.Popen(['qsub', jfn], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-                p.wait()
-                out, err = p.communicate()
-                quantjobsIDs.append(out.split(b'.')[0])
-                os.system('sleep 1')
-    except Exception as ex:
-        logger.error('Problem with Cuffquant jobs. RNAseq analysis is stopped.\nAn exception of type {} occured. Arguments:\n{}'.format(type(ex).__name__, ex.args))
-        return False
+    if ('cuffquant' in jobs) or (jobs == None):
+        try:
+            for group_name, group in groups.items():
+                quantjobsIDs = []
+                for sample, reads in group.items():
+                    js = quant_jobs(project_path=project_path, sample=sample, mergejob=mergejob, ref=ref, defaults=defaults, ppn=ppn)
+                    jfn = os.path.join(project_path, 'job_files', 'job_{}_cuffquant.sh'.format(sample))
+                    jf = open(jfn, 'w')
+                    jf.write(js)
+                    jf.close()
+                    p = subprocess.Popen(['qsub', jfn], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                    p.wait()
+                    out, err = p.communicate()
+                    quantjobsIDs.append(out.split(b'.')[0])
+                    os.system('sleep 1')
+        except Exception as ex:
+            logger.error('Problem with Cuffquant jobs. RNAseq analysis is stopped.\nAn exception of type {} occured. Arguments:\n{}'.format(type(ex).__name__, ex.args))
+            return False
 
     # generate and submit cuffdiff job
-    try:
-        os.mkdir(os.path.join(project_path, 'cdiff'))
-    except FileExistsError:
-        logger.warning('Folder for cuffdiff exists. Previously generated files will be overwritten.')
+    if ('cuffdiff' in jobs) or (jobs == None):
+        try:
+            os.mkdir(os.path.join(project_path, 'cdiff'))
+        except FileExistsError:
+            logger.warning('Folder for cuffdiff exists. Previously generated files will be overwritten.')
 
-    try:
-        js = diff_job(project_path=project_path, groups=groups, quantjobsIDs=quantjobsIDs, ppn=ppn, walltime='24:00:00',
-                      ref=ref, defaults=defaults)
-        jfn = os.path.join(project_path, 'job_files', 'job_cuffdiff.sh')
-        jf = open(jfn, 'w')
-        jf.write(js)
-        jf.close()
-        p = subprocess.Popen(['qsub', jfn], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        p.wait()
-        out, err = p.communicate()
-        diffjob = out.split(b'.')[0]
-        os.system('sleep 1')
-    except Exception as ex:
-        logger.error('Problem with Cuffdiff. RNAseq analysis is stopped.\nAn exception of type {} occured. Arguments:\n{}'.format(type(ex).__name__, ex.args))
-        return False
+        try:
+            js = diff_job(project_path=project_path, groups=groups, quantjobsIDs=quantjobsIDs, ppn=ppn, walltime='24:00:00',
+                          ref=ref, defaults=defaults)
+            jfn = os.path.join(project_path, 'job_files', 'job_cuffdiff.sh')
+            jf = open(jfn, 'w')
+            jf.write(js)
+            jf.close()
+            p = subprocess.Popen(['qsub', jfn], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            p.wait()
+            out, err = p.communicate()
+            diffjob = out.split(b'.')[0]
+            os.system('sleep 1')
+        except Exception as ex:
+            logger.error('Problem with Cuffdiff. RNAseq analysis is stopped.\nAn exception of type {} occured. Arguments:\n{}'.format(type(ex).__name__, ex.args))
+            return False
 
     return True
 
