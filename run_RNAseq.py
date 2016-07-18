@@ -29,10 +29,10 @@ def main():
                         level=logging.DEBUG)
     logger = logging.getLogger(__name__)
     logger.info('\n-----\nRNAseq pipeline started\n----')
-    if args.jobs is not None:
+    if args.jobs != []:
         jobs = args.jobs.split(',')
     else:
-        jobs = None
+        jobs = []
     defaults = ip.get_defaults()
     ref = ip.get_reference(strain_code=args.strain_code, project_path=project_path)
     reads, project_path = ip.set_project(project_path=project_path, read_path=args.read_path)
