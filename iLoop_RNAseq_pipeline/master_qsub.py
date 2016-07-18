@@ -175,7 +175,7 @@ module load ngs tools cufflinks/2.2.1 tophat/2.1.1 bowtie2/2.2.5''']
 def quant_jobs(project_path, sample, mergejob, ppn='8', walltime='12:00:00', ref=None, defaults=None):
     logging.info('Using cuffquant options: {}'.format(defaults['cuffquant_options']))
     jobstr = []
-    jobstr += [job_header.replace('JOBNAME', '_'.join([sample] + 'cuffquant'))
+    jobstr += [job_header.replace('JOBNAME', '_'.join([sample] + ['cuffquant']))
                          .replace('WALTIME', walltime)
                          .replace('PROJECT', defaults['project'])
                          .replace('JOB_OUTPUTS', os.path.join(project_path, 'job_outputs'))
