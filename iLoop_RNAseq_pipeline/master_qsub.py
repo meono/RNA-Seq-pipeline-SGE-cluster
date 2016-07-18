@@ -1,5 +1,6 @@
 from __future__ import division, print_function
 import os
+import sys
 import subprocess
 import logging
 
@@ -50,12 +51,11 @@ def fastqc_job(project_path, groups, output_path, defaults, ppn='8', walltime='0
         os.makedirs(output_path, exist_ok=True)
 
     jobstr = []
-    jobstr += [job_header.replace('JOBNAME', 'fastqc') \
-                   .replace('WALTIME', walltime) \
-                   # .replace('PPN', ppn)\
-                   .replace('PROJECT', defaults['project']) \
-                   .replace('JOB_OUTPUTS', os.path.join(project_path, 'job_outputs')) \
-                   .replace('EMAILADDRESS', defaults['email'])]
+    jobstr += [job_header.replace('JOBNAME', 'fastqc')
+                         .replace('WALTIME', walltime)
+                         .replace('PROJECT', defaults['project'])
+                         .replace('JOB_OUTPUTS', os.path.join(project_path, 'job_outputs'))
+                         .replace('EMAILADDRESS', defaults['email'])]
 
     jobstr += ['''# Load modules needed by myapplication.x
 module load ngs FastQC/0.11.2''']
@@ -363,8 +363,8 @@ def job_submitter(project_path, groups, ref, defaults, ppn='8', readtype='raw', 
                     os.system('sleep 1')
         except Exception as ex:
             logger.error(
-                'Problem with Cuffquant jobs. RNAseq analysis is stopped.\nAn exception of type {} occured. Arguments:\n{}'.format(
-                    type(ex).__name__, ex.args))
+                'Problem with Cuffquant jobs. RNAseq analysis is stopped.\nAn exception of type {} occured. Arguments:\n{}\nBased in line {}'.format(
+                    type(ex).__name__, ex.args, sys.exc_info()[2].tb_lineno))
             return False
 
     # generate and submit cuffdiff job
