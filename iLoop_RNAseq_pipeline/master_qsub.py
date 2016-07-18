@@ -86,6 +86,8 @@ module load ngs FastQC/0.11.2''']
 
 def mapandlink_jobs(project_path, sample, reads, defaults, ref, jobs, ppn='8', walltime='12:00:00'):
     mljobs = ['hisat2', 'stringtie', 'cufflinks', 'htseq-count']
+    if jobs == []:
+        jobs = mljobs
     jobstr = []
     jobstr += [job_header.replace('JOBNAME', '_'.join([sample] + [job for job in jobs if job in mljobs]))
                    .replace('WALTIME', walltime)
