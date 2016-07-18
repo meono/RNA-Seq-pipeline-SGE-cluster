@@ -52,10 +52,10 @@ def fastqc_job(project_path, groups, output_path, defaults, ppn='8', walltime='0
 
     jobstr = []
     jobstr += [job_header.replace('JOBNAME', 'fastqc')
-                         .replace('WALTIME', walltime)
-                         .replace('PROJECT', defaults['project'])
-                         .replace('JOB_OUTPUTS', os.path.abspath(os.path.join(project_path, 'job_outputs')))
-                         .replace('EMAILADDRESS', defaults['email'])]
+                   .replace('WALTIME', walltime)
+                   .replace('PROJECT', defaults['project'])
+                   .replace('JOB_OUTPUTS', os.path.abspath(os.path.join(project_path, 'job_outputs')))
+                   .replace('EMAILADDRESS', defaults['email'])]
 
     jobstr += ['''# Load modules needed by myapplication.x
 module load ngs FastQC/0.11.2''']
@@ -69,14 +69,13 @@ module load ngs FastQC/0.11.2''']
 
 
 def mapandlink_jobs(project_path, sample, reads, defaults, ref, jobs, ppn='8', walltime='12:00:00'):
-
     mljobs = ['hisat2', 'stringtie', 'cufflinks', 'htseq-count']
     jobstr = []
     jobstr += [job_header.replace('JOBNAME', '_'.join([sample] + [job for job in jobs if job in mljobs]))
-                         .replace('WALTIME', walltime)
-                         .replace('PROJECT', defaults['project'])
-                         .replace('JOB_OUTPUTS', os.path.abspath(os.path.join(project_path, 'job_outputs')))
-                         .replace('EMAILADDRESS', defaults['email'])]
+                   .replace('WALTIME', walltime)
+                   .replace('PROJECT', defaults['project'])
+                   .replace('JOB_OUTPUTS', os.path.abspath(os.path.join(project_path, 'job_outputs')))
+                   .replace('EMAILADDRESS', defaults['email'])]
 
     jobstr += ['''# Load modules needed by myapplication.x
 module load ngs tools samtools/1.2 bowtie2/2.2.5 cufflinks/2.2.1
@@ -111,12 +110,18 @@ samtools sort -@ PPN - {}'''.format(defaults['hisat2_options'],
                                                                                     (('-G ' + ref[
                                                                                         'gff_genome']) if ref.get(
                                                                                         'gff_genome') else ''),
-                                                                                    os.path.abspath(os.path.join(project_path, sample,
-                                                                                                 'transcripts.gtf')),
-                                                                                    os.path.abspath(os.path.join(project_path, sample,
-                                                                                                 'gene_abund.tab')),
-                                                                                    os.path.abspath(os.path.join(project_path, sample,
-                                                                                                 'accepted_hits.sorted.bam')))]
+                                                                                    os.path.abspath(
+                                                                                        os.path.join(project_path,
+                                                                                                     sample,
+                                                                                                     'transcripts.gtf')),
+                                                                                    os.path.abspath(
+                                                                                        os.path.join(project_path,
+                                                                                                     sample,
+                                                                                                     'gene_abund.tab')),
+                                                                                    os.path.abspath(
+                                                                                        os.path.join(project_path,
+                                                                                                     sample,
+                                                                                                     'accepted_hits.sorted.bam')))]
 
     if 'cufflinks' in jobs:
         logging.info('Using cufflinks options: {}'.format(defaults['cufflinks_options']))
@@ -125,21 +130,27 @@ samtools sort -@ PPN - {}'''.format(defaults['hisat2_options'],
                                                                                      'gff_genome') else '',
                                                                                  ('-M ' + ref['gff_mask']) if ref.get(
                                                                                      'gff_mask') else '',
-                                                                                 (os.path.abspath(os.path.join(project_path, sample))),
-                                                                                 (os.path.abspath(os.path.join(project_path, sample,
-                                                                                               'accepted_hits.sorted.bam'))))]
+                                                                                 (os.path.abspath(
+                                                                                     os.path.join(project_path,
+                                                                                                  sample))),
+                                                                                 (os.path.abspath(
+                                                                                     os.path.join(project_path, sample,
+                                                                                                  'accepted_hits.sorted.bam'))))]
 
     if 'htseq-count' in jobs:
         logging.info('Using htseq options: {}'.format(defaults['htseq_options']))
         jobstr += ['echo "htseq"\nhtseq-count {} -f bam {} {} -o {} > {}'.format(defaults['htseq_options'],
-                                                                                 (os.path.abspath(os.path.join(project_path, sample,
-                                                                                               'accepted_hits.sorted.bam'))),
+                                                                                 (os.path.abspath(
+                                                                                     os.path.join(project_path, sample,
+                                                                                                  'accepted_hits.sorted.bam'))),
                                                                                  ((ref['gff_genome']) if ref.get(
                                                                                      'gff_genome') else ''),
-                                                                                 (os.path.abspath(os.path.join(project_path, sample,
-                                                                                               'htseq_counts.sam'))),
-                                                                                 (os.path.abspath(os.path.join(project_path, sample,
-                                                                                               'htseq_counts.out'))))]
+                                                                                 (os.path.abspath(
+                                                                                     os.path.join(project_path, sample,
+                                                                                                  'htseq_counts.sam'))),
+                                                                                 (os.path.abspath(
+                                                                                     os.path.join(project_path, sample,
+                                                                                                  'htseq_counts.out'))))]
 
     return '\n\n'.join(jobstr).replace('PPN', ppn)
 
@@ -148,10 +159,10 @@ def merge_job(project_path, mapjobIDs, ref, defaults, ppn='1', walltime='01:00:0
     logging.info('Using cuffmerge options: {}'.format(defaults['cuffmerge_options']))
     jobstr = []
     jobstr += [job_header.replace('JOBNAME', 'cuffmerge')
-                         .replace('WALTIME', walltime)
-                         .replace('PROJECT', defaults['project'])
-                         .replace('JOB_OUTPUTS', os.path.abspath(os.path.join(project_path, 'job_outputs')))
-                         .replace('EMAILADDRESS', defaults['email'])]
+                   .replace('WALTIME', walltime)
+                   .replace('PROJECT', defaults['project'])
+                   .replace('JOB_OUTPUTS', os.path.abspath(os.path.join(project_path, 'job_outputs')))
+                   .replace('EMAILADDRESS', defaults['email'])]
 
     # make this job depend on successful completion of previous jobs: mapandlink_jobs
     jobstr += ['#PBS -W depend=afterok:{}'.format(':'.join([mapjob for mapjob in mapjobIDs]))]
@@ -160,14 +171,14 @@ def merge_job(project_path, mapjobIDs, ref, defaults, ppn='1', walltime='01:00:0
 module load ngs tools cufflinks/2.2.1 tophat/2.1.1 bowtie2/2.2.5''']
 
     jobstr += ['cuffmerge {} {} -p PPN {} -o {} {}'.format(defaults['cuffmerge_options'],
-                                                                    (('-g ' + ref['gff_genome']) if ref.get(
-                                                                        'gff_genome') else ''),
-                                                                    (('-s ' + ref['fasta_genome']) if ref.get(
-                                                                        'fasta_genome') else ''),
-                                                                    (os.path.abspath(os.path.join(project_path, 'cmerge',
-                                                                                  'merged_asm'))),
-                                                                    (os.path.abspath(os.path.join(project_path, 'cmerge',
-                                                                                  'assemblies.txt'))))]
+                                                           (('-g ' + ref['gff_genome']) if ref.get(
+                                                               'gff_genome') else ''),
+                                                           (('-s ' + ref['fasta_genome']) if ref.get(
+                                                               'fasta_genome') else ''),
+                                                           (os.path.abspath(os.path.join(project_path, 'cmerge',
+                                                                                         'merged_asm'))),
+                                                           (os.path.abspath(os.path.join(project_path, 'cmerge',
+                                                                                         'assemblies.txt'))))]
 
     return '\n\n'.join(jobstr).replace('PPN', ppn)
 
@@ -176,10 +187,10 @@ def quant_jobs(project_path, sample, mergejob, ref, defaults, ppn='8', walltime=
     logging.info('Using cuffquant options: {}'.format(defaults['cuffquant_options']))
     jobstr = []
     jobstr += [job_header.replace('JOBNAME', '_'.join([sample] + ['cuffquant']))
-                         .replace('WALTIME', walltime)
-                         .replace('PROJECT', defaults['project'])
-                         .replace('JOB_OUTPUTS', os.path.abspath(os.path.join(project_path, 'job_outputs')))
-                         .replace('EMAILADDRESS', defaults['email'])]
+                   .replace('WALTIME', walltime)
+                   .replace('PROJECT', defaults['project'])
+                   .replace('JOB_OUTPUTS', os.path.abspath(os.path.join(project_path, 'job_outputs')))
+                   .replace('EMAILADDRESS', defaults['email'])]
 
     # make this job depend on successful completion of previous jobs: merge_job
     jobstr += ['#PBS -W depend=afterok:{}'.format(mergejob)]
@@ -191,14 +202,15 @@ module load ngs tools cufflinks/2.2.1 tophat/2.1.1 bowtie2/2.2.5''']
         jobstr += ['export BOWTIE_INDEXES={}'.format(ref['bowtie_indexes'])]
 
     jobstr += ['cuffquant {} -p PPN {} -o {} {} {} {} '.format(defaults['cuffquant_options'],
-                                                            ('-M ' + ref['gff_mask']) if ref.get('gff_mask') else '',
-                                                            (os.path.abspath(os.path.join(project_path, sample))),
-                                                            ('-b ' + ref['fasta_genome']) if ref.get(
-                                                                'fasta_genome') else '',
-                                                            (os.path.abspath(os.path.join(project_path, 'cmerge', 'merged_asm',
-                                                                          'merged.gtf'))),
-                                                            (os.path.abspath(os.path.join(project_path, sample,
-                                                                          'accepted_hits.sorted.bam'))))]
+                                                               ('-M ' + ref['gff_mask']) if ref.get('gff_mask') else '',
+                                                               (os.path.abspath(os.path.join(project_path, sample))),
+                                                               ('-b ' + ref['fasta_genome']) if ref.get(
+                                                                   'fasta_genome') else '',
+                                                               (os.path.abspath(
+                                                                   os.path.join(project_path, 'cmerge', 'merged_asm',
+                                                                                'merged.gtf'))),
+                                                               (os.path.abspath(os.path.join(project_path, sample,
+                                                                                             'accepted_hits.sorted.bam'))))]
 
     return '\n\n'.join(jobstr).replace('PPN', ppn)
 
@@ -207,37 +219,41 @@ def diff_job(project_path, groups, quantjobsIDs, ppn='8', walltime='24:00:00', r
     logging.info('Using cuffdiff options: {}'.format(defaults['cuffdiff_options']))
     jobstr = []
     jobstr += [job_header.replace('JOBNAME', 'cuffdiff')
-                         .replace('WALTIME', walltime)
-                         .replace('PROJECT', defaults['project'])
-                         .replace('JOB_OUTPUTS', os.path.abspath(os.path.join(project_path, 'job_outputs')))
-                         .replace('EMAILADDRESS', defaults['email'])]
+                   .replace('WALTIME', walltime)
+                   .replace('PROJECT', defaults['project'])
+                   .replace('JOB_OUTPUTS', os.path.abspath(os.path.join(project_path, 'job_outputs')))
+                   .replace('EMAILADDRESS', defaults['email'])]
 
     # make this job depend on successful completion of previous jobs: mapandlink_jobs
-    jobstr += ['#PBS –W depend=afterok:{}'.format(':'.join([quantjobsID for quantjobsID in quantjobsIDs]))]
+    jobstr += ['#PBS -W depend=afterok:{}'.format(':'.join([quantjobsID for quantjobsID in quantjobsIDs]))]
 
     jobstr += ['''# Load modules needed by myapplication.x
 module load ngs tools cufflinks/2.2.1 tophat/2.1.1 bowtie2/2.2.5''']
 
-    jobstr += ['cuffdiff {} -o diff_out {} -p PPN {} -L {} -u {} -o {} {}'.format(ref['cuffdiff_options'],
-                                                                                  (('-b ' + ref['fasta_genome']) if ref[
-                                                                                                                        'fasta_genome'] != '' else ''),
-                                                                                  (('-M ' + ref['gff_mask']) if ref[
-                                                                                                                    'gff_mask'] != '' else ''),
-                                                                                  (','.join(
-                                                                                      [group_name for group_name, group
-                                                                                       in groups.items()])),
-                                                                                  (os.path.abspath(os.path.join(project_path, 'cmerge',
-                                                                                                'merged_asm',
-                                                                                                'merged.gtf'))),
-                                                                                  (os.path.abspath(os.path.join(project_path, 'cdiff',
-                                                                                                'diff_out'))),
-                                                                                  (' '.join([','.join([os.path.abspath(os.path.join(
-                                                                                      project_path, sample,
-                                                                                      'abundances.cxb')) for
-                                                                                                       sample, reads in
-                                                                                                       group.items()])
-                                                                                             for group_name, group in
-                                                                                             groups.items()])))]
+    jobstr += ['cuffdiff {} -o {} {} -p PPN {} -L {} -u {} -o {} {}'.format(ref['cuffdiff_options'],
+                                                                            os.path.abspath(
+                                                                                os.path.join(project_path, 'cdiff',
+                                                                                             'diff_out')),
+                                                                            (('-b ' + ref['fasta_genome']) if ref['fasta_genome'] != '' else ''),
+                                                                            (('-M ' + ref['gff_mask']) if ref['gff_mask'] != '' else ''),
+                                                                            (','.join(
+                                                                                [group_name for group_name, group
+                                                                                 in groups.items()])),
+                                                                            (os.path.abspath(
+                                                                                os.path.join(project_path, 'cmerge',
+                                                                                             'merged_asm',
+                                                                                             'merged.gtf'))),
+                                                                            (os.path.abspath(
+                                                                                os.path.join(project_path, 'cdiff',
+                                                                                             'diff_out'))),
+                                                                            (' '.join(
+                                                                                [','.join([os.path.abspath(os.path.join(
+                                                                                    project_path, sample,
+                                                                                    'abundances.cxb')) for
+                                                                                           sample, reads in
+                                                                                           group.items()])
+                                                                                 for group_name, group in
+                                                                                 groups.items()])))]
 
     return '\n\n'.join(jobstr).replace('PPN', ppn)
 
@@ -317,7 +333,7 @@ def job_submitter(project_path, groups, ref, defaults, ppn='8', readtype='raw', 
         try:
             af = open(os.path.join(project_path, 'cmerge', 'assemblies.txt'), 'w')
             af.write('\n'.join([os.path.join(project_path, replicate, 'transcripts.gtf') for group in groups.values()
-                               for replicate in group.keys()]))
+                                for replicate in group.keys()]))
             af.close()
             logging.info('"Assemblies.txt" is generated under "cmerge".')
         except Exception as ex:
@@ -367,6 +383,8 @@ def job_submitter(project_path, groups, ref, defaults, ppn='8', readtype='raw', 
                 'Problem with Cuffquant jobs. RNAseq analysis is stopped.\nAn exception of type {} occured. Arguments:\n{}'.format(
                     type(ex).__name__, ex.args))
             return False
+    else:
+        quantjobsIDs = ['']
 
     # generate and submit cuffdiff job
     if ('cuffdiff' in jobs) or (jobs is None):
