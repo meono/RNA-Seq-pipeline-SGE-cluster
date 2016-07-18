@@ -26,6 +26,14 @@ def get_defaults():
             if line.strip():
                 defaults[line.split(',')[0].strip()] = line.split(',')[1].strip()
 
+    try:
+        with open(os.path.join(os.path.expanduser("~"), 'RNAseq_pipeline_defaults.txt')) as rpd:
+            for line in rpd.readlines():
+                if line.strip():
+                    defaults[line.split(',')[0].strip()] = line.split(',')[1].strip()
+    except FileNotFoundError:
+        logger.warning('"RNAseq_pipeline_defaults.txt" does not exist under home path. An email address and project ID should be should be define in that file.')
+
     # replace with user defaults
     try:
         with open('RNAseq_pipeline_defaults.txt') as rpd:
@@ -33,27 +41,30 @@ def get_defaults():
                 if line.strip():
                     defaults[line.split(',')[0].strip()] = line.split(',')[1].strip()
     except FileNotFoundError:
-        logger.info('"RNAseq_pipeline_defaults.txt" does not exist under this folder. Defaults from the package and home path will be used.')
+        logger.info(
+            '"RNAseq_pipeline_defaults.txt" does not exist under this folder. Defaults from the package and home path will be used.')
 
-    try:
-        with open(os.path.join(os.path.expanduser("~"), 'RNAseq_pipeline_defaults.txt')) as rpd:
-            for line in rpd.readlines():
-                if line.strip():
-                    defaults[line.split(',')[0].strip()] = line.split(',')[1].strip()
-    except FileNotFoundError:
-        logger.warning('"RNAseq_pipeline_defaults.txt" does not exist under this folder or home path.')
-        while True:
-            email = input('Enter email address for job status: \n')
-            if validate_email(email):
-                break
-            else:
-                print('{} is not valid, try again.'.format(email))
+    if 'email' not in defaults:
+        if not validate_email(defaults['email']):
+            while True:
+                email = input('Enter a valid email address for job status: \n')
+                if validate_email(email):
+                    defaults['email'] = email
+                    print('Writing email to "RNAseq_pipeline_defaults.txt" under home path.')
+                    f = open(os.path.join(os.path.expanduser("~"), 'RNAseq_pipeline_defaults.txt'), 'w+')
+                    f.write('\nemail,{}'.format(email))
+                    f.close()
+                    break
+                else:
+                    print('{} is not valid, try again.'.format(email))
 
+    if 'project' not in defaults:
         project = input('Enter Computerome project ID for billing: \n')
         # TODO It is possible to validate this by checking folder name under "/home/projects".
-        print('Writing these to "RNAseq_pipeline_defaults.txt" under home path.')
-        f = open(os.path.join(os.path.expanduser("~"), 'RNAseq_pipeline_defaults.txt'), 'w')
-        f.write('email,{}\nproject,{}'.format(email, project))
+        defaults['project'] = project
+        print('Writing project ID to "RNAseq_pipeline_defaults.txt" under home path.')
+        f = open(os.path.join(os.path.expanduser("~"), 'RNAseq_pipeline_defaults.txt'), 'w+')
+        f.write('\nproject,{}'.format(project))
         f.close()
 
     return defaults
