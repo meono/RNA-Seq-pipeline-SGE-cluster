@@ -190,8 +190,9 @@ module load ngs tools cufflinks/2.2.1 tophat/2.1.1 bowtie2/2.2.5''']
     if ref.get('bowtie_indexes'):
         jobstr += ['export BOWTIE_INDEXES={}'.format(ref['bowtie_indexes'])]
 
-    jobstr += ['cuffquant {} -p PPN {} -o {} {} {} '.format(defaults['cuffquant_options'],
+    jobstr += ['cuffquant {} -p PPN {} -o {} {} {} {} '.format(defaults['cuffquant_options'],
                                                             ('-M ' + ref['gff_mask']) if ref.get('gff_mask') else '',
+                                                            (os.path.join(project_path, sample)),
                                                             ('-b ' + ref['fasta_genome']) if ref.get(
                                                                 'fasta_genome') else '',
                                                             (os.path.join(project_path, 'cmerge', 'merged_asm',
