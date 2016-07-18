@@ -159,15 +159,15 @@ def merge_job(project_path, mapjobIDs, ref, defaults, ppn='1', walltime='01:00:0
     jobstr += ['''# Load modules needed by myapplication.x
 module load ngs tools cufflinks/2.2.1 tophat/2.1.1 bowtie2/2.2.5''']
 
-    jobstr += ['cuffmerge {} {} -p PPN -o {} {}'.format(defaults['cuffmerge_options'],
+    jobstr += ['cuffmerge {} {} -p PPN {} -o {} {}'.format(defaults['cuffmerge_options'],
                                                                     (('-g ' + ref['gff_genome']) if ref.get(
                                                                         'gff_genome') else ''),
                                                                     (('-s ' + ref['fasta_genome']) if ref.get(
                                                                         'fasta_genome') else ''),
                                                                     (os.path.join(project_path, 'cmerge',
-                                                                                  'merged_asm'))),
+                                                                                  'merged_asm')),
                                                                     (os.path.join(project_path, 'cmerge',
-                                                                                  'assemblies.txt'))]
+                                                                                  'assemblies.txt')))]
 
     return '\n\n'.join(jobstr).replace('PPN', ppn)
 
