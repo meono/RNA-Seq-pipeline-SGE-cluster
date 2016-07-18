@@ -286,7 +286,7 @@ def job_submitter(project_path, groups, ref, defaults, ppn='8', readtype='raw', 
         logger.warning('Folder for job outputs exists.')
 
     # do quality checks
-    if ('fastqc' in jobs) or (jobs is None):
+    if ('fastqc' in jobs) or (jobs == []):
         try:
             output_path = os.path.abspath(os.path.join(project_path, 'reads', 'QC_output', readtype))
             if not check_fastqc(groups=groups, output_path=output_path):
@@ -313,7 +313,7 @@ def job_submitter(project_path, groups, ref, defaults, ppn='8', readtype='raw', 
 
     # generate and submit map and link jobs
     mljobs = ['hisat2', 'stringtie', 'cufflinks', 'htseq-count']
-    if (any(job for job in jobs if job in mljobs)) or (jobs is None):
+    if (any(job for job in jobs if job in mljobs)) or (jobs == []):
         try:
             for group_name, group in groups.items():
                 mapjobIDs = []
@@ -344,7 +344,7 @@ def job_submitter(project_path, groups, ref, defaults, ppn='8', readtype='raw', 
         mapjobIDs = ['']
 
     # generate and submit merge job
-    if ('cuffmerge' in jobs) or (jobs is None):
+    if ('cuffmerge' in jobs) or (jobs == []):
         try:
             os.mkdir(os.path.join(project_path, 'cmerge'))
         except FileExistsError:
@@ -382,7 +382,7 @@ def job_submitter(project_path, groups, ref, defaults, ppn='8', readtype='raw', 
         mergejob = ''
 
     # generate and submit cuffquant jobs
-    if ('cuffquant' in jobs) or (jobs is None):
+    if ('cuffquant' in jobs) or (jobs == []):
         try:
             for group_name, group in groups.items():
                 quantjobsIDs = []
@@ -407,7 +407,7 @@ def job_submitter(project_path, groups, ref, defaults, ppn='8', readtype='raw', 
         quantjobsIDs = ['']
 
     # generate and submit cuffdiff job
-    if ('cuffdiff' in jobs) or (jobs is None):
+    if ('cuffdiff' in jobs) or (jobs == []):
         try:
             os.mkdir(os.path.join(project_path, 'cdiff'))
         except FileExistsError:
