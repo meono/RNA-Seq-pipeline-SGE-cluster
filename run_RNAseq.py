@@ -14,7 +14,7 @@ parser.add_argument('-r', '--read-path',
                     help='Path to reads folder(s). Can be suplied as comma separated string. All files under the path tree will be added.',
                     default=None)
 parser.add_argument('-j', '--jobs', help='Comma separated list of jobs to run.', default=None)
-# parser.add_argument('-s', '--strain-code', help='Code for the reference strain. Available strains and corresponding codes are on "References.tsv".', required=True)
+parser.add_argument('-n', '--number-of-cores', help='Number of cores to assign to individual jobs', default='8')
 parser.add_argument('-s', '--strain-code',
                     help='Code for the reference strain. Available strains and corresponding codes are on "RNAseq_pipeline_references.tsv".',
                     default=None)
@@ -44,7 +44,7 @@ def main():
                                 readtype='raw',
                                 ref=ref,
                                 defaults=defaults,
-                                ppn=8,
+                                ppn=args.number_of_cores,
                                 jobs=jobs)
     else:
         logger.error('Something is missing: \n{}'.format(

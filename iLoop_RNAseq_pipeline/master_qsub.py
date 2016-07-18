@@ -141,7 +141,7 @@ samtools sort -@ PPN - {}'''.format(defaults['hisat2_options'],
                                                                                  (os.path.join(project_path, sample,
                                                                                                'htseq_counts.out')))]
 
-    return '\n\n'.join(jobstr).replace('PPN', str(ppn))
+    return '\n\n'.join(jobstr).replace('PPN', ppn)
 
 
 def merge_job(project_path, mapjobIDs, ref, defaults, ppn='1', walltime='01:00:00'):
@@ -180,19 +180,15 @@ def quant_jobs(project_path, sample, mergejob, ref, defaults, ppn='8', walltime=
                          .replace('PROJECT', defaults['project'])
                          .replace('JOB_OUTPUTS', os.path.join(project_path, 'job_outputs'))
                          .replace('EMAILADDRESS', defaults['email'])]
-    logging.debug('header done')
 
     # make this job depend on successful completion of previous jobs: merge_job
     jobstr += ['#PBS -W depend=afterok:{}'.format(mergejob)]
-    logging.debug('dependence done')
 
     jobstr += ['''# Load modules needed by myapplication.x
 module load ngs tools cufflinks/2.2.1 tophat/2.1.1 bowtie2/2.2.5''']
-    logging.debug('modules done')
 
     if ref.get('bowtie_indexes'):
         jobstr += ['export BOWTIE_INDEXES={}'.format(ref['bowtie_indexes'])]
-        logging.debug('bowtie done')
 
     jobstr += ['cuffquant {} -p PPN {} -o {} {} {} '.format(defaults['cuffquant_options'],
                                                             ('-M ' + ref['gff_mask']) if ref.get('gff_mask') else '',
@@ -202,9 +198,8 @@ module load ngs tools cufflinks/2.2.1 tophat/2.1.1 bowtie2/2.2.5''']
                                                                           'merged.gtf')),
                                                             (os.path.join(project_path, sample,
                                                                           'accepted_hits.sorted.bam')))]
-    logging.debug('command done')
 
-    return '\n\n'.join(jobstr).replace('PPN', str(ppn))
+    return '\n\n'.join(jobstr).replace('PPN', ppn)
 
 
 def diff_job(project_path, groups, quantjobsIDs, ppn='8', walltime='24:00:00', ref=None, defaults=None):
@@ -294,18 +289,14 @@ def job_submitter(project_path, groups, ref, defaults, ppn='8', readtype='raw', 
                     samples.append(sample)
                     js = mapandlink_jobs(project_path=project_path, sample=sample, reads=reads, ref=ref,
                                          defaults=defaults, ppn=ppn, jobs=jobs)
-                    logging.debug('script done')
                     jfn = os.path.join(project_path, 'job_files', 'job_{}_mapandlink.sh'.format(sample))
                     jf = open(jfn, 'w')
                     jf.write(js)
                     jf.close()
-                    logging.debug('write done')
                     p = subprocess.Popen(['qsub', jfn], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
                     p.wait()
-                    logging.debug('submit done')
                     out, err = p.communicate()
                     mapjobIDs.append(out.split(b'.')[0])
-                    logging.debug('IDs done')
                     os.system('sleep 0.5')
         except Exception as ex:
             logger.error(
