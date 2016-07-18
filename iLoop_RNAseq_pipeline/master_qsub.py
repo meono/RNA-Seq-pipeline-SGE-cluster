@@ -273,9 +273,12 @@ def job_submitter(project_path, groups, ref, defaults, ppn='8', readtype='raw'):
 
     try:
         af = open(os.path.join([project_path, 'cmerge', 'assemblies.txt']), 'w')
-        af.write('\n'.join([os.path.join(project_path, sample, 'transcripts.gtf') for sample in samples]))
+        af.write('\n'.join([os.path.join(project_path, replicate, 'transcripts.gtf') for group in groups.values() for replicate in group.keys()]))
         af.close()
-    except:
+    except Exception as ex:
+        logger.error(
+            '"Assemblies.txt for cuffmerge could not be generated.\nAn exception of type {} occured. Arguments:\n{}'.format(
+                type(ex).__name__, ex.args))
         return False
 
     try:
