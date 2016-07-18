@@ -348,6 +348,8 @@ def job_submitter(project_path, groups, ref, defaults, ppn='8', readtype='raw', 
     else:
         mapjobIDs = ['']
 
+    logger.debug('try printing job ids')
+    logger.debug('{}'.format(','.join(str(m) for m in mapjobIDs)))
     logger.debug('{}'.format(mapjobIDs))
     # generate and submit merge job
     if ('cuffmerge' in jobs) or (jobs == []):
