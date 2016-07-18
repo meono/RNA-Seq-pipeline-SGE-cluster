@@ -343,6 +343,8 @@ def job_submitter(project_path, groups, ref, defaults, ppn='8', readtype='raw', 
                 'Problem with Cuffmerge. RNAseq analysis is stopped.\nAn exception of type {} occured. Arguments:\n{}'.format(
                     type(ex).__name__, ex.args))
             return False
+    else:
+        mergejob = ''
 
     # generate and submit cuffquant jobs
     if ('cuffquant' in jobs) or (jobs is None):
