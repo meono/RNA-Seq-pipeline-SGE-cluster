@@ -54,7 +54,7 @@ def fastqc_job(project_path, groups, output_path, defaults, ppn='8', walltime='0
     jobstr += [job_header.replace('JOBNAME', 'fastqc')
                          .replace('WALTIME', walltime)
                          .replace('PROJECT', defaults['project'])
-                         .replace('JOB_OUTPUTS', os.path.join(project_path, 'job_outputs'))
+                         .replace('JOB_OUTPUTS', os.path.abspath(os.path.join(project_path, 'job_outputs')))
                          .replace('EMAILADDRESS', defaults['email'])]
 
     jobstr += ['''# Load modules needed by myapplication.x
@@ -75,7 +75,7 @@ def mapandlink_jobs(project_path, sample, reads, defaults, ref, jobs, ppn='8', w
     jobstr += [job_header.replace('JOBNAME', '_'.join([sample] + [job for job in jobs if job in mljobs]))
                          .replace('WALTIME', walltime)
                          .replace('PROJECT', defaults['project'])
-                         .replace('JOB_OUTPUTS', os.path.join(project_path, 'job_outputs'))
+                         .replace('JOB_OUTPUTS', os.path.abspath(os.path.join(project_path, 'job_outputs')))
                          .replace('EMAILADDRESS', defaults['email'])]
 
     jobstr += ['''# Load modules needed by myapplication.x
@@ -101,8 +101,8 @@ samtools sort -@ PPN - {}'''.format(defaults['hisat2_options'],
                                     ref['hisat2_indexes'],
                                     ('-1' + ','.join(R1reads)),
                                     ('-2' + ','.join(R2reads)),
-                                    (os.path.join(project_path, sample, 'align_summary.txt')),
-                                    (os.path.join(project_path, sample, 'accepted_hits.sorted')))]
+                                    (os.path.abspath(os.path.join(project_path, sample, 'align_summary.txt'))),
+                                    (os.path.abspath(os.path.join(project_path, sample, 'accepted_hits.sorted'))))]
 
     if 'stringtie' in jobs:
         logger.warning('Beware: Stringtie does not allow masking for now.')
@@ -111,12 +111,12 @@ samtools sort -@ PPN - {}'''.format(defaults['hisat2_options'],
                                                                                     (('-G ' + ref[
                                                                                         'gff_genome']) if ref.get(
                                                                                         'gff_genome') else ''),
-                                                                                    os.path.join(project_path, sample,
-                                                                                                 'transcripts.gtf'),
-                                                                                    os.path.join(project_path, sample,
-                                                                                                 'gene_abund.tab'),
-                                                                                    os.path.join(project_path, sample,
-                                                                                                 'accepted_hits.sorted.bam'))]
+                                                                                    os.path.abspath(os.path.join(project_path, sample,
+                                                                                                 'transcripts.gtf')),
+                                                                                    os.path.abspath(os.path.join(project_path, sample,
+                                                                                                 'gene_abund.tab')),
+                                                                                    os.path.abspath(os.path.join(project_path, sample,
+                                                                                                 'accepted_hits.sorted.bam')))]
 
     if 'cufflinks' in jobs:
         logging.info('Using cufflinks options: {}'.format(defaults['cufflinks_options']))
@@ -125,21 +125,21 @@ samtools sort -@ PPN - {}'''.format(defaults['hisat2_options'],
                                                                                      'gff_genome') else '',
                                                                                  ('-M ' + ref['gff_mask']) if ref.get(
                                                                                      'gff_mask') else '',
-                                                                                 (os.path.join(project_path, sample)),
-                                                                                 (os.path.join(project_path, sample,
-                                                                                               'accepted_hits.sorted.bam')))]
+                                                                                 (os.path.abspath(os.path.join(project_path, sample))),
+                                                                                 (os.path.abspath(os.path.join(project_path, sample,
+                                                                                               'accepted_hits.sorted.bam'))))]
 
     if 'htseq-count' in jobs:
         logging.info('Using htseq options: {}'.format(defaults['htseq_options']))
         jobstr += ['echo "htseq"\nhtseq-count {} -f bam {} {} -o {} > {}'.format(defaults['htseq_options'],
-                                                                                 (os.path.join(project_path, sample,
-                                                                                               'accepted_hits.sorted.bam')),
+                                                                                 (os.path.abspath(os.path.join(project_path, sample,
+                                                                                               'accepted_hits.sorted.bam'))),
                                                                                  ((ref['gff_genome']) if ref.get(
                                                                                      'gff_genome') else ''),
-                                                                                 (os.path.join(project_path, sample,
-                                                                                               'htseq_counts.sam')),
-                                                                                 (os.path.join(project_path, sample,
-                                                                                               'htseq_counts.out')))]
+                                                                                 (os.path.abspath(os.path.join(project_path, sample,
+                                                                                               'htseq_counts.sam'))),
+                                                                                 (os.path.abspath(os.path.join(project_path, sample,
+                                                                                               'htseq_counts.out'))))]
 
     return '\n\n'.join(jobstr).replace('PPN', ppn)
 
@@ -150,7 +150,7 @@ def merge_job(project_path, mapjobIDs, ref, defaults, ppn='1', walltime='01:00:0
     jobstr += [job_header.replace('JOBNAME', 'cuffmerge')
                          .replace('WALTIME', walltime)
                          .replace('PROJECT', defaults['project'])
-                         .replace('JOB_OUTPUTS', os.path.join(project_path, 'job_outputs'))
+                         .replace('JOB_OUTPUTS', os.path.abspath(os.path.join(project_path, 'job_outputs')))
                          .replace('EMAILADDRESS', defaults['email'])]
 
     # make this job depend on successful completion of previous jobs: mapandlink_jobs
@@ -164,10 +164,10 @@ module load ngs tools cufflinks/2.2.1 tophat/2.1.1 bowtie2/2.2.5''']
                                                                         'gff_genome') else ''),
                                                                     (('-s ' + ref['fasta_genome']) if ref.get(
                                                                         'fasta_genome') else ''),
-                                                                    (os.path.join(project_path, 'cmerge',
-                                                                                  'merged_asm')),
-                                                                    (os.path.join(project_path, 'cmerge',
-                                                                                  'assemblies.txt')))]
+                                                                    (os.path.abspath(os.path.join(project_path, 'cmerge',
+                                                                                  'merged_asm'))),
+                                                                    (os.path.abspath(os.path.join(project_path, 'cmerge',
+                                                                                  'assemblies.txt'))))]
 
     return '\n\n'.join(jobstr).replace('PPN', ppn)
 
@@ -178,7 +178,7 @@ def quant_jobs(project_path, sample, mergejob, ref, defaults, ppn='8', walltime=
     jobstr += [job_header.replace('JOBNAME', '_'.join([sample] + ['cuffquant']))
                          .replace('WALTIME', walltime)
                          .replace('PROJECT', defaults['project'])
-                         .replace('JOB_OUTPUTS', os.path.join(project_path, 'job_outputs'))
+                         .replace('JOB_OUTPUTS', os.path.abspath(os.path.join(project_path, 'job_outputs')))
                          .replace('EMAILADDRESS', defaults['email'])]
 
     # make this job depend on successful completion of previous jobs: merge_job
@@ -192,13 +192,13 @@ module load ngs tools cufflinks/2.2.1 tophat/2.1.1 bowtie2/2.2.5''']
 
     jobstr += ['cuffquant {} -p PPN {} -o {} {} {} {} '.format(defaults['cuffquant_options'],
                                                             ('-M ' + ref['gff_mask']) if ref.get('gff_mask') else '',
-                                                            (os.path.join(project_path, sample)),
+                                                            (os.path.abspath(os.path.join(project_path, sample))),
                                                             ('-b ' + ref['fasta_genome']) if ref.get(
                                                                 'fasta_genome') else '',
-                                                            (os.path.join(project_path, 'cmerge', 'merged_asm',
-                                                                          'merged.gtf')),
-                                                            (os.path.join(project_path, sample,
-                                                                          'accepted_hits.sorted.bam')))]
+                                                            (os.path.abspath(os.path.join(project_path, 'cmerge', 'merged_asm',
+                                                                          'merged.gtf'))),
+                                                            (os.path.abspath(os.path.join(project_path, sample,
+                                                                          'accepted_hits.sorted.bam'))))]
 
     return '\n\n'.join(jobstr).replace('PPN', ppn)
 
@@ -209,7 +209,7 @@ def diff_job(project_path, groups, quantjobsIDs, ppn='8', walltime='24:00:00', r
     jobstr += [job_header.replace('JOBNAME', 'cuffdiff')
                          .replace('WALTIME', walltime)
                          .replace('PROJECT', defaults['project'])
-                         .replace('JOB_OUTPUTS', os.path.join(project_path, 'job_outputs'))
+                         .replace('JOB_OUTPUTS', os.path.abspath(os.path.join(project_path, 'job_outputs')))
                          .replace('EMAILADDRESS', defaults['email'])]
 
     # make this job depend on successful completion of previous jobs: mapandlink_jobs
@@ -226,14 +226,14 @@ module load ngs tools cufflinks/2.2.1 tophat/2.1.1 bowtie2/2.2.5''']
                                                                                   (','.join(
                                                                                       [group_name for group_name, group
                                                                                        in groups.items()])),
-                                                                                  (os.path.join(project_path, 'cmerge',
+                                                                                  (os.path.abspath(os.path.join(project_path, 'cmerge',
                                                                                                 'merged_asm',
-                                                                                                'merged.gtf')),
-                                                                                  (os.path.join(project_path, 'cdiff',
-                                                                                                'diff_out')),
-                                                                                  (' '.join([','.join([os.path.join(
+                                                                                                'merged.gtf'))),
+                                                                                  (os.path.abspath(os.path.join(project_path, 'cdiff',
+                                                                                                'diff_out'))),
+                                                                                  (' '.join([','.join([os.path.abspath(os.path.join(
                                                                                       project_path, sample,
-                                                                                      'abundances.cxb') for
+                                                                                      'abundances.cxb')) for
                                                                                                        sample, reads in
                                                                                                        group.items()])
                                                                                              for group_name, group in
@@ -256,7 +256,7 @@ def job_submitter(project_path, groups, ref, defaults, ppn='8', readtype='raw', 
     # do quality checks
     if ('fastqc' in jobs) or (jobs is None):
         try:
-            output_path = os.path.join(project_path, 'reads', 'QC_output', readtype)
+            output_path = os.path.abspath(os.path.join(project_path, 'reads', 'QC_output', readtype))
             if not check_fastqc(groups=groups, output_path=output_path):
                 js = fastqc_job(project_path=project_path, groups=groups, output_path=output_path, defaults=defaults)
                 jfn = os.path.join(project_path, 'job_files', 'job_fastqc.sh')
