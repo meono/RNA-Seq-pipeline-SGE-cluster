@@ -95,6 +95,7 @@ export PATH''']
     R2reads.sort()
 
     if (ref.get('hisat2_indexes')) and ('hisat2' in jobs):
+        logging.info('Using hisat2 options: {}'.format(defaults['hisat2_options']))
         jobstr += ['''echo "hisat2"
 hisat2 {} -p PPN -x {} {} {} 2>{} | \
 samtools view -@ PPN -hbu - | \
@@ -107,6 +108,7 @@ samtools sort -@ PPN - {}'''.format(defaults['hisat2_options'],
 
     if 'stringtie' in jobs:
         logger.warning('Beware: Stringtie does not allow masking for now.')
+        logging.info('Using stringtie options: {}'.format(defaults['stringtie_options']))
         jobstr += ['echo "stringtie"\nstringtie {} -p PPN {} -o {} -A {} {}'.format(defaults['stringtie_options'],
                                                                                     (('-G ' + ref[
                                                                                         'gff_genome']) if ref.get(
@@ -119,6 +121,7 @@ samtools sort -@ PPN - {}'''.format(defaults['hisat2_options'],
                                                                                                  'accepted_hits.sorted.bam'))]
 
     if 'cufflinks' in jobs:
+        logging.info('Using cufflinks options: {}'.format(defaults['cufflinks_options']))
         jobstr += ['echo "cufflinks"\ncufflinks {} -p PPN {} {} -o {} {}'.format(defaults['cufflinks_options'],
                                                                                  ('-G ' + ref['gff_genome']) if ref.get(
                                                                                      'gff_genome') else '',
@@ -129,6 +132,7 @@ samtools sort -@ PPN - {}'''.format(defaults['hisat2_options'],
                                                                                                'accepted_hits.sorted.bam')))]
 
     if 'htseq-count' in jobs:
+        logging.info('Using htseq options: {}'.format(defaults['htseq_options']))
         jobstr += ['echo "htseq"\nhtseq-count {} -f bam {} {} -o {} > {}'.format(defaults['htseq_options'],
                                                                                  (os.path.join(project_path, sample,
                                                                                                'accepted_hits.sorted.bam')),
@@ -143,6 +147,7 @@ samtools sort -@ PPN - {}'''.format(defaults['hisat2_options'],
 
 
 def merge_job(project_path, mapjobIDs, ppn='1', walltime='01:00:00', ref=None, defaults=None):
+    logging.info('Using cuffmerge options: {}'.format(defaults['cuffmerge_options']))
     jobstr = []
     jobstr += [job_header.replace('JOBNAME', 'cuffmerge') \
                    .replace('WALTIME', walltime) \
@@ -169,6 +174,7 @@ module load ngs tools cufflinks/2.2.1 tophat/2.1.1 bowtie2/2.2.5''']
 
 
 def quant_jobs(project_path, sample, mergejob, ppn='8', walltime='12:00:00', ref=None, defaults=None):
+    logging.info('Using cuffquant options: {}'.format(defaults['cuffquant_options']))
     jobstr = []
     jobstr += [job_header.replace('JOBNAME', '_'.join([sample] + 'cuffquant')) \
                    .replace('WALTIME', walltime) \
@@ -201,6 +207,7 @@ module load ngs tools cufflinks/2.2.1 tophat/2.1.1 bowtie2/2.2.5''']
 
 
 def diff_job(project_path, groups, quantjobsIDs, ppn='8', walltime='24:00:00', ref=None, defaults=None):
+    logging.info('Using cuffdiff options: {}'.format(defaults['cuffdiff_options']))
     jobstr = []
     jobstr += [job_header.replace('JOBNAME', 'cuffdiff') \
                    .replace('WALTIME', walltime) \
@@ -308,7 +315,7 @@ def job_submitter(project_path, groups, ref, defaults, ppn='8', readtype='raw', 
             logger.warning('Folder for cuffmerge exists. Previously generated files will be overwritten.')
 
         try:
-            af = open(os.path.join([project_path, 'cmerge', 'assemblies.txt']), 'w')
+            af = open(os.path.join(project_path, 'cmerge', 'assemblies.txt'), 'w')
             af.write('\n'.join([os.path.join(project_path, replicate, 'transcripts.gtf') for group in groups.values()
                                for replicate in group.keys()]))
             af.close()
