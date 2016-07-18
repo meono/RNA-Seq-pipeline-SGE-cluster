@@ -230,7 +230,7 @@ def diff_job(project_path, groups, quantjobsIDs, ppn='8', walltime='24:00:00', r
     jobstr += ['''# Load modules needed by myapplication.x
 module load ngs tools cufflinks/2.2.1 tophat/2.1.1 bowtie2/2.2.5''']
 
-    jobstr += ['cuffdiff {} -o {} {} -p PPN {} -L {} -u {} -o {} {}'.format(ref['cuffdiff_options'],
+    jobstr += ['cuffdiff {} -o {} {} -p PPN {} -L {} -u {} -o {} {}'.format(defaults['cuffdiff_options'],
                                                                             os.path.abspath(
                                                                                 os.path.join(project_path, 'cdiff',
                                                                                              'diff_out')),
