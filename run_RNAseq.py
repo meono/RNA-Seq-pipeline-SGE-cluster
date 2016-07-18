@@ -33,6 +33,7 @@ def main():
         jobs = args.jobs.split(',')
     else:
         jobs = []
+    logging.info('Registered jobs are: {}'.format(','.join([job for job in jobs])))
     defaults = ip.get_defaults()
     ref = ip.get_reference(strain_code=args.strain_code, project_path=project_path)
     reads, project_path = ip.set_project(project_path=project_path, read_path=args.read_path)
