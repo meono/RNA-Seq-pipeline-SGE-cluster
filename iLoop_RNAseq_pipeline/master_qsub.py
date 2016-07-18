@@ -204,7 +204,7 @@ module load ngs tools cufflinks/2.2.1 tophat/2.1.1 bowtie2/2.2.5''']
                                                                           'accepted_hits.sorted.bam')))]
     logging.debug('command done')
 
-    return '\n\n'.join(jobstr).replace('PPN', ppn)
+    return '\n\n'.join(jobstr).replace('PPN', str(ppn))
 
 
 def diff_job(project_path, groups, quantjobsIDs, ppn='8', walltime='24:00:00', ref=None, defaults=None):
