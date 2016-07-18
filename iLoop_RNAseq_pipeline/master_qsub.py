@@ -6,7 +6,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 job_header = \
-'''#!/bin/sh
+    '''#!/bin/sh
 ### Account information
 #PBS -W group_list=PROJECT -A PROJECT
 # -- Name of the job ---
@@ -24,26 +24,27 @@ job_header = \
 if test X$PBS_ENVIRONMENT = XPBS_BATCH; then cd $PBS_O_WORKDIR; fi
 # here follow the commands you want to execute'''
 
+
 def check_fastqc(groups, output_path):
     """Checks if fastqc files exists and are not empty."""
     for readf in [readf for group in groups.values() for readfs in group.values() for readf in readfs]:
         qcf = readf.split('.')[0].split('/')[-1]
         if (not os.path.isfile(os.path.join(output_path, qcf + '_fastqc.zip'))) or \
-           (not os.path.isfile(os.path.join(output_path, qcf + '_fastqc.html'))):
+                (not os.path.isfile(os.path.join(output_path, qcf + '_fastqc.html'))):
             return False
         elif (os.path.getsize(os.path.join(output_path, qcf + '_fastqc.zip')) == 0) or \
-             (os.path.getsize(os.path.join(output_path, qcf + '_fastqc.html')) == 0):
+                (os.path.getsize(os.path.join(output_path, qcf + '_fastqc.html')) == 0):
             return False
     return True
 
-def fastqc_job(project_path, groups, output_path, defaults, ppn='8', walltime ='02:00:00'):
+
+def fastqc_job(project_path, groups, output_path, defaults, ppn='8', walltime='02:00:00'):
     """Runs fastqc for all the reads.
 
     reads: dictionary from set_project function
     output_path: path for the output of fastqc
                 - ideally, project_path/reads/QC_output/XYZ where XYZ denotes raw or trimmed
      """
-
 
     if not os.path.exists(output_path):
         os.makedirs(output_path, exist_ok=True)
@@ -53,30 +54,31 @@ def fastqc_job(project_path, groups, output_path, defaults, ppn='8', walltime ='
                    .replace('WALTIME', walltime) \
                    # .replace('PPN', ppn)\
                    .replace('PROJECT', defaults['project']) \
-                   .replace('JOB_OUTPUTS',  os.path.join(project_path, 'job_outputs')) \
+                   .replace('JOB_OUTPUTS', os.path.join(project_path, 'job_outputs')) \
                    .replace('EMAILADDRESS', defaults['email'])]
 
     jobstr += ['''# Load modules needed by myapplication.x
 module load ngs FastQC/0.11.2''']
 
     jobstr += ['fastqc -t PPN -o {} {}'.format(output_path,
-                                               ' '.join([readf for group in groups.values() for readfs in group.values() for readf in readfs]))]
+                                               ' '.join(
+                                                   [readf for group in groups.values() for readfs in group.values() for
+                                                    readf in readfs]))]
 
     return '\n\n'.join(jobstr).replace('PPN', ppn)
 
 
-def mapandlink_jobs(project_path, sample, reads, defaults, ref, ppn='8', walltime ='12:00:00', jobs=None):
-
+def mapandlink_jobs(project_path, sample, reads, defaults, ref, ppn='8', walltime='12:00:00', jobs=None):
     if jobs is None:
         jobs = ['hisat2', 'stringtie', 'cufflinks', 'htseq-count']
 
     jobstr = []
-    jobstr += [job_header.replace('JOBNAME', '_'.join([sample]+jobs))\
-                       .replace('WALTIME', walltime)\
-                       # .replace('PPN', ppn)\
-                       .replace('PROJECT', defaults['project']) \
-                       .replace('JOB_OUTPUTS',  os.path.join(project_path, 'job_outputs')) \
-                       .replace('EMAILADDRESS', defaults['email'])]
+    jobstr += [job_header.replace('JOBNAME', '_'.join([sample] + jobs)) \
+                   .replace('WALTIME', walltime) \
+                   # .replace('PPN', ppn)\
+                   .replace('PROJECT', defaults['project']) \
+                   .replace('JOB_OUTPUTS', os.path.join(project_path, 'job_outputs')) \
+                   .replace('EMAILADDRESS', defaults['email'])]
 
     jobstr += ['''# Load modules needed by myapplication.x
 module load ngs tools samtools/1.2 bowtie2/2.2.5 cufflinks/2.2.1
@@ -98,45 +100,56 @@ hisat2 {} -p PPN -x {} {} {} 2>{} | \
 samtools view -@ PPN -hbu - | \
 samtools sort -@ PPN - {}'''.format(defaults['hisat2_options'],
                                     ref['hisat2_indexes'],
-                                    ('-1'+','.join(R1reads)),
-                                    ('-2'+','.join(R2reads)),
+                                    ('-1' + ','.join(R1reads)),
+                                    ('-2' + ','.join(R2reads)),
                                     (os.path.join(project_path, sample, 'align_summary.txt')),
                                     (os.path.join(project_path, sample, 'accepted_hits.sorted')))]
 
     if 'stringtie' in jobs:
         logger.warning('Beware: Stringtie does not allow masking for now.')
         jobstr += ['echo "stringtie"\nstringtie {} -p PPN {} -o {} -A {} {}'.format(defaults['stringtie_options'],
-                                                                  (('-G ' + ref['gff_genome']) if ref.get('gff_genome') else ''),
-                                                                  os.path.join(project_path, sample, 'transcripts.gtf'),
-                                                                  os.path.join(project_path, sample, 'gene_abund.tab'),
-                                                                  os.path.join(project_path, sample, 'accepted_hits.sorted.bam'))]
+                                                                                    (('-G ' + ref[
+                                                                                        'gff_genome']) if ref.get(
+                                                                                        'gff_genome') else ''),
+                                                                                    os.path.join(project_path, sample,
+                                                                                                 'transcripts.gtf'),
+                                                                                    os.path.join(project_path, sample,
+                                                                                                 'gene_abund.tab'),
+                                                                                    os.path.join(project_path, sample,
+                                                                                                 'accepted_hits.sorted.bam'))]
 
     if 'cufflinks' in jobs:
         jobstr += ['echo "cufflinks"\ncufflinks {} -p PPN {} {} -o {} {}'.format(defaults['cufflinks_options'],
-                                                                ('-G '+ref['gff_genome']) if ref.get('gff_genome') else '',
-                                                                ('-M ' + ref['gff_mask']) if ref.get('gff_mask') else '',
-                                                                (os.path.join(project_path, sample)),
-                                                                (os.path.join(project_path, sample, 'accepted_hits.sorted.bam')))]
+                                                                                 ('-G ' + ref['gff_genome']) if ref.get(
+                                                                                     'gff_genome') else '',
+                                                                                 ('-M ' + ref['gff_mask']) if ref.get(
+                                                                                     'gff_mask') else '',
+                                                                                 (os.path.join(project_path, sample)),
+                                                                                 (os.path.join(project_path, sample,
+                                                                                               'accepted_hits.sorted.bam')))]
 
     if 'htseq-count' in jobs:
         jobstr += ['echo "htseq"\nhtseq-count {} -f bam {} {} -o {} > {}'.format(defaults['htseq_options'],
-                                                                   (os.path.join(project_path, sample, 'accepted_hits.sorted.bam')),
-                                                                   ((ref['gff_genome']) if ref.get('gff_genome') else ''),
-                                                                   (os.path.join(project_path, sample, 'htseq_counts.sam')),
-                                                                   (os.path.join(project_path, sample, 'htseq_counts.out')))]
+                                                                                 (os.path.join(project_path, sample,
+                                                                                               'accepted_hits.sorted.bam')),
+                                                                                 ((ref['gff_genome']) if ref.get(
+                                                                                     'gff_genome') else ''),
+                                                                                 (os.path.join(project_path, sample,
+                                                                                               'htseq_counts.sam')),
+                                                                                 (os.path.join(project_path, sample,
+                                                                                               'htseq_counts.out')))]
 
     return '\n\n'.join(jobstr).replace('PPN', str(ppn))
 
 
 def merge_job(project_path, mapjobIDs, ppn='1', walltime='01:00:00', ref=None, defaults=None):
-
     jobstr = []
-    jobstr += [job_header.replace('JOBNAME', 'cuffmerge')\
-                         .replace('WALTIME', walltime)\
-                         # .replace('PPN', ppn)\
-                         .replace('PROJECT', defaults['project']) \
-                         .replace('JOB_OUTPUTS',  os.path.join(project_path, 'job_outputs')) \
-                         .replace('EMAILADDRESS', defaults['email'])]
+    jobstr += [job_header.replace('JOBNAME', 'cuffmerge') \
+                   .replace('WALTIME', walltime) \
+                   # .replace('PPN', ppn)\
+                   .replace('PROJECT', defaults['project']) \
+                   .replace('JOB_OUTPUTS', os.path.join(project_path, 'job_outputs')) \
+                   .replace('EMAILADDRESS', defaults['email'])]
 
     # make this job depend on successful completion of previous jobs: mapandlink_jobs
     jobstr += ['#PBS –W depend=afterok:{}'.format(':'.join([mapjob for mapjob in mapjobIDs]))]
@@ -145,22 +158,24 @@ def merge_job(project_path, mapjobIDs, ppn='1', walltime='01:00:00', ref=None, d
 module load ngs tools cufflinks/2.2.1 tophat/2.1.1 bowtie2/2.2.5''']
 
     jobstr += ['cuffmerge {} {} -p PPN -o {} assemblies.txt'.format(defaults['cufflinks_options'],
-                                                                    (('-g '+ref['gff_genome']) if ref.get('gff_genome') else ''),
-                                                                    (('-s ' + ref['fasta_genome']) if ref.get('fasta_genome') else ''),
-                                                                    (os.path.join(project_path, 'cmerge', 'merged_asm')))]
+                                                                    (('-g ' + ref['gff_genome']) if ref.get(
+                                                                        'gff_genome') else ''),
+                                                                    (('-s ' + ref['fasta_genome']) if ref.get(
+                                                                        'fasta_genome') else ''),
+                                                                    (os.path.join(project_path, 'cmerge',
+                                                                                  'merged_asm')))]
 
     return '\n\n'.join(jobstr).replace('PPN', ppn)
 
 
-def quant_jobs(project_path, sample, mergejob, ppn='8', walltime ='12:00:00', ref=None, defaults=None):
-
+def quant_jobs(project_path, sample, mergejob, ppn='8', walltime='12:00:00', ref=None, defaults=None):
     jobstr = []
-    jobstr += [job_header.replace('JOBNAME', '_'.join([sample]+'cuffquant'))\
-                       .replace('WALTIME', walltime)\
-                       # .replace('PPN', ppn)\
-                       .replace('PROJECT', defaults['project']) \
-                       .replace('JOB_OUTPUTS',  os.path.join(project_path, 'job_outputs')) \
-                       .replace('EMAILADDRESS', defaults['email'])]
+    jobstr += [job_header.replace('JOBNAME', '_'.join([sample] + 'cuffquant')) \
+                   .replace('WALTIME', walltime) \
+                   # .replace('PPN', ppn)\
+                   .replace('PROJECT', defaults['project']) \
+                   .replace('JOB_OUTPUTS', os.path.join(project_path, 'job_outputs')) \
+                   .replace('EMAILADDRESS', defaults['email'])]
 
     # make this job depend on successful completion of previous jobs: merge_job
     jobstr += ['#PBS –W depend=afterok:{}'.format(mergejob)]
@@ -173,23 +188,26 @@ module load ngs tools cufflinks/2.2.1 tophat/2.1.1 bowtie2/2.2.5''']
 
     jobstr += ['cuffquant {} -p PPN {} -o {} {} {} '.format(defaults['cuffquant_options'],
                                                             ('-M ' + ref['gff_mask']) if ref.get('gff_mask') else '',
-                                                            (os.path.join(project_path, sample, 'accepted_hits.sorted.bam')),
-                                                            ('-b ' + ref['fasta_genome']) if ref.get('fasta_genome') else '',
-                                                            (os.path.join(project_path, 'cmerge', 'merged_asm', 'merged.gtf')),
-                                                            (os.path.join(project_path, sample, 'accepted_hits.sorted.bam')))]
+                                                            (os.path.join(project_path, sample,
+                                                                          'accepted_hits.sorted.bam')),
+                                                            ('-b ' + ref['fasta_genome']) if ref.get(
+                                                                'fasta_genome') else '',
+                                                            (os.path.join(project_path, 'cmerge', 'merged_asm',
+                                                                          'merged.gtf')),
+                                                            (os.path.join(project_path, sample,
+                                                                          'accepted_hits.sorted.bam')))]
 
     return '\n\n'.join(jobstr).replace('PPN', ppn)
 
 
 def diff_job(project_path, groups, quantjobsIDs, ppn='8', walltime='24:00:00', ref=None, defaults=None):
-
     jobstr = []
-    jobstr += [job_header.replace('JOBNAME', 'cuffdiff')\
-                         .replace('WALTIME', walltime)\
-                         # .replace('PPN', ppn)\
-                         .replace('PROJECT', defaults['project']) \
-                         .replace('JOB_OUTPUTS',  os.path.join(project_path, 'job_outputs')) \
-                         .replace('EMAILADDRESS', defaults['email'])]
+    jobstr += [job_header.replace('JOBNAME', 'cuffdiff') \
+                   .replace('WALTIME', walltime) \
+                   # .replace('PPN', ppn)\
+                   .replace('PROJECT', defaults['project']) \
+                   .replace('JOB_OUTPUTS', os.path.join(project_path, 'job_outputs')) \
+                   .replace('EMAILADDRESS', defaults['email'])]
 
     # make this job depend on successful completion of previous jobs: mapandlink_jobs
     jobstr += ['#PBS –W depend=afterok:{}'.format(':'.join([quantjobsID for quantjobsID in quantjobsIDs]))]
@@ -198,18 +216,30 @@ def diff_job(project_path, groups, quantjobsIDs, ppn='8', walltime='24:00:00', r
 module load ngs tools cufflinks/2.2.1 tophat/2.1.1 bowtie2/2.2.5''']
 
     jobstr += ['cuffdiff {} -o diff_out {} -p PPN {} -L {} -u {} -o {} {}'.format(ref['cuffdiff_options'],
-                                                                                  (('-b '+ref['fasta_genome']) if ref['fasta_genome'] != '' else ''),
-                                                                                  (('-M '+ref['gff_mask']) if ref['gff_mask'] != '' else ''),
-                                                                                  (','.join([group_name for group_name, group in groups.items()])),
-                                                                                  (os.path.join(project_path, 'cmerge', 'merged_asm', 'merged.gtf')),
-                                                                                  (os.path.join(project_path, 'cdiff', 'diff_out')),
-                                                                                  (' '.join([','.join([os.path.join(project_path, sample, 'abundances.cxb') for sample, reads in group.items()]) for group_name, group in groups.items()])))]
+                                                                                  (('-b ' + ref['fasta_genome']) if ref[
+                                                                                                                        'fasta_genome'] != '' else ''),
+                                                                                  (('-M ' + ref['gff_mask']) if ref[
+                                                                                                                    'gff_mask'] != '' else ''),
+                                                                                  (','.join(
+                                                                                      [group_name for group_name, group
+                                                                                       in groups.items()])),
+                                                                                  (os.path.join(project_path, 'cmerge',
+                                                                                                'merged_asm',
+                                                                                                'merged.gtf')),
+                                                                                  (os.path.join(project_path, 'cdiff',
+                                                                                                'diff_out')),
+                                                                                  (' '.join([','.join([os.path.join(
+                                                                                      project_path, sample,
+                                                                                      'abundances.cxb') for
+                                                                                                       sample, reads in
+                                                                                                       group.items()])
+                                                                                             for group_name, group in
+                                                                                             groups.items()])))]
 
     return '\n\n'.join(jobstr).replace('PPN', ppn)
 
 
 def job_submitter(project_path, groups, ref, defaults, ppn='8', readtype='raw', jobs=None):
-
     try:
         os.mkdir(os.path.join(project_path, 'job_files'))
     except FileExistsError:
@@ -239,7 +269,9 @@ def job_submitter(project_path, groups, ref, defaults, ppn='8', readtype='raw', 
                 logger.info('Existing fastqc files found. Skipping quality check job.')
                 qcjobID = True
         except Exception as ex:
-            logger.error('Problem with FastQC. RNAseq analysis is stopped.\nAn exception of type {} occured. Arguments:\n{}'.format(type(ex).__name__, ex.args))
+            logger.error(
+                'Problem with FastQC. RNAseq analysis is stopped.\nAn exception of type {} occured. Arguments:\n{}'.format(
+                    type(ex).__name__, ex.args))
             return False
 
     # TODO: Come up with a qc threshold to continue or terminate jobs. Use qcjobID from above.
@@ -263,7 +295,9 @@ def job_submitter(project_path, groups, ref, defaults, ppn='8', readtype='raw', 
                 mapjobIDs.append(out.split(b'.')[0])
                 os.system('sleep 1')
     except Exception as ex:
-        logger.error('Problem with map and link. RNAseq analysis is stopped.\nAn exception of type {} occured. Arguments:\n{}'.format(type(ex).__name__, ex.args))
+        logger.error(
+            'Problem with map and link. RNAseq analysis is stopped.\nAn exception of type {} occured. Arguments:\n{}'.format(
+                type(ex).__name__, ex.args))
         return False
 
     # generate and submit merge job
@@ -275,7 +309,8 @@ def job_submitter(project_path, groups, ref, defaults, ppn='8', readtype='raw', 
 
         try:
             af = open(os.path.join([project_path, 'cmerge', 'assemblies.txt']), 'w')
-            af.write('\n'.join([os.path.join(project_path, replicate, 'transcripts.gtf') for group in groups.values() for replicate in group.keys()]))
+            af.write('\n'.join([os.path.join(project_path, replicate, 'transcripts.gtf') for group in groups.values()
+                               for replicate in group.keys()]))
             af.close()
         except Exception as ex:
             logger.error(
@@ -284,7 +319,9 @@ def job_submitter(project_path, groups, ref, defaults, ppn='8', readtype='raw', 
             return False
 
         try:
-            js = merge_job(project_path=project_path, mapjobs=mapjobIDs, ref=ref, defaults=defaults)
+            if 'mapjobIDs' not in locals():
+                mapjobIDs = ['']
+            js = merge_job(project_path=project_path, mapjobIDs=mapjobIDs, ref=ref, defaults=defaults)
             jfn = os.path.join(project_path, 'job_files', 'job_cuffmerge.sh')
             jf = open(jfn, 'w')
             jf.write(js)
@@ -295,7 +332,9 @@ def job_submitter(project_path, groups, ref, defaults, ppn='8', readtype='raw', 
             mergejob = out.split(b'.')[0]
             os.system('sleep 1')
         except Exception as ex:
-            logger.error('Problem with Cuffmerge. RNAseq analysis is stopped.\nAn exception of type {} occured. Arguments:\n{}'.format(type(ex).__name__, ex.args))
+            logger.error(
+                'Problem with Cuffmerge. RNAseq analysis is stopped.\nAn exception of type {} occured. Arguments:\n{}'.format(
+                    type(ex).__name__, ex.args))
             return False
 
     # generate and submit cuffquant jobs
@@ -304,7 +343,8 @@ def job_submitter(project_path, groups, ref, defaults, ppn='8', readtype='raw', 
             for group_name, group in groups.items():
                 quantjobsIDs = []
                 for sample, reads in group.items():
-                    js = quant_jobs(project_path=project_path, sample=sample, mergejob=mergejob, ref=ref, defaults=defaults, ppn=ppn)
+                    js = quant_jobs(project_path=project_path, sample=sample, mergejob=mergejob, ref=ref,
+                                    defaults=defaults, ppn=ppn)
                     jfn = os.path.join(project_path, 'job_files', 'job_{}_cuffquant.sh'.format(sample))
                     jf = open(jfn, 'w')
                     jf.write(js)
@@ -315,7 +355,9 @@ def job_submitter(project_path, groups, ref, defaults, ppn='8', readtype='raw', 
                     quantjobsIDs.append(out.split(b'.')[0])
                     os.system('sleep 1')
         except Exception as ex:
-            logger.error('Problem with Cuffquant jobs. RNAseq analysis is stopped.\nAn exception of type {} occured. Arguments:\n{}'.format(type(ex).__name__, ex.args))
+            logger.error(
+                'Problem with Cuffquant jobs. RNAseq analysis is stopped.\nAn exception of type {} occured. Arguments:\n{}'.format(
+                    type(ex).__name__, ex.args))
             return False
 
     # generate and submit cuffdiff job
@@ -326,7 +368,8 @@ def job_submitter(project_path, groups, ref, defaults, ppn='8', readtype='raw', 
             logger.warning('Folder for cuffdiff exists. Previously generated files will be overwritten.')
 
         try:
-            js = diff_job(project_path=project_path, groups=groups, quantjobsIDs=quantjobsIDs, ppn=ppn, walltime='24:00:00',
+            js = diff_job(project_path=project_path, groups=groups, quantjobsIDs=quantjobsIDs, ppn=ppn,
+                          walltime='24:00:00',
                           ref=ref, defaults=defaults)
             jfn = os.path.join(project_path, 'job_files', 'job_cuffdiff.sh')
             jf = open(jfn, 'w')
@@ -338,12 +381,12 @@ def job_submitter(project_path, groups, ref, defaults, ppn='8', readtype='raw', 
             diffjob = out.split(b'.')[0]
             os.system('sleep 1')
         except Exception as ex:
-            logger.error('Problem with Cuffdiff. RNAseq analysis is stopped.\nAn exception of type {} occured. Arguments:\n{}'.format(type(ex).__name__, ex.args))
+            logger.error(
+                'Problem with Cuffdiff. RNAseq analysis is stopped.\nAn exception of type {} occured. Arguments:\n{}'.format(
+                    type(ex).__name__, ex.args))
             return False
 
     return True
-
-
 
 #
 #
