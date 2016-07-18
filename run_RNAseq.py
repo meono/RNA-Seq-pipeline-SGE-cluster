@@ -21,7 +21,7 @@ parser.add_argument('-s', '--strain-code',
 args = parser.parse_args()
 
 
-def main(arg):
+def main():
     project_path = ip.check_project_path(args.project_path)
     logging.basicConfig(filename='{}/RNAseq_pipeline.log'.format(project_path),
                         format='%(asctime)s %(levelname)s : %(message)s',
