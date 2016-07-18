@@ -221,7 +221,7 @@ def job_submitter(project_path, groups, ref, defaults, ppn='8', readtype='raw', 
         logger.warning('Folder for job outputs exists.')
 
     # do quality checks
-    if ('fastqc' in jobs) or (jobs == None):
+    if ('fastqc' in jobs) or (jobs is None):
         try:
             output_path = os.path.join(project_path, 'reads', 'QC_output', readtype)
             if not check_fastqc(groups=groups, output_path=output_path):
@@ -267,7 +267,7 @@ def job_submitter(project_path, groups, ref, defaults, ppn='8', readtype='raw', 
         return False
 
     # generate and submit merge job
-    if ('cuffmerge' in jobs) or (jobs == None):
+    if ('cuffmerge' in jobs) or (jobs is None):
         try:
             os.mkdir(os.path.join(project_path, 'cmerge'))
         except FileExistsError:
@@ -299,7 +299,7 @@ def job_submitter(project_path, groups, ref, defaults, ppn='8', readtype='raw', 
             return False
 
     # generate and submit cuffquant jobs
-    if ('cuffquant' in jobs) or (jobs == None):
+    if ('cuffquant' in jobs) or (jobs is None):
         try:
             for group_name, group in groups.items():
                 quantjobsIDs = []
@@ -319,7 +319,7 @@ def job_submitter(project_path, groups, ref, defaults, ppn='8', readtype='raw', 
             return False
 
     # generate and submit cuffdiff job
-    if ('cuffdiff' in jobs) or (jobs == None):
+    if ('cuffdiff' in jobs) or (jobs is None):
         try:
             os.mkdir(os.path.join(project_path, 'cdiff'))
         except FileExistsError:

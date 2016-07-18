@@ -13,12 +13,13 @@ parser.add_argument('-p', '--project-path', help='Path to project folder', defau
 parser.add_argument('-r', '--read-path',
                     help='Path to reads folder(s). Can be suplied as comma separated string. All files under the path tree will be added.',
                     default=None)
-parser.add_argument('-j', '--jobs', help='Jobs to run.', default=None)
+parser.add_argument('-j', '--jobs', help='Comma separated list of jobs to run.', default=None)
 # parser.add_argument('-s', '--strain-code', help='Code for the reference strain. Available strains and corresponding codes are on "References.tsv".', required=True)
 parser.add_argument('-s', '--strain-code',
                     help='Code for the reference strain. Available strains and corresponding codes are on "RNAseq_pipeline_references.tsv".',
                     default=None)
 args = parser.parse_args()
+
 
 def main(arg):
     project_path = ip.check_project_path(args.project_path)
@@ -28,7 +29,10 @@ def main(arg):
                         level=logging.DEBUG)
     logger = logging.getLogger(__name__)
     logger.info('\n-----\nRNAseq pipeline started\n----')
-
+    if arg.jobs is not None:
+        jobs = arg.jobs.split(',')
+    else:
+        jobs = None
     defaults = ip.get_defaults()
     ref = ip.get_reference(strain_code=args.strain_code, project_path=project_path)
     reads, project_path = ip.set_project(project_path=project_path, read_path=args.read_path)
@@ -41,7 +45,7 @@ def main(arg):
                                 ref=ref,
                                 defaults=defaults,
                                 ppn=8,
-                                jobs=arg.jobs)
+                                jobs=jobs)
     else:
         logger.error('Something is missing: \n{}'.format(
             ', '.join([ess for ess in essentials if not ess])))
