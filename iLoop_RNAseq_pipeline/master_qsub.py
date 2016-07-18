@@ -184,10 +184,11 @@ def merge_job(project_path, mapjobIDs, ref, defaults, ppn='1', walltime='01:00:0
 
     # make this job depend on successful completion of previous jobs: mapandlink_jobs
     jobstr += ['#PBS -W depend=afterok:{}'.format(':'.join([mapjob for mapjob in mapjobIDs]))]
+    logging.debug('dependency done.')
 
     jobstr += ['''# Load modules needed by myapplication.x
 module load ngs tools cufflinks/2.2.1 tophat/2.1.1 bowtie2/2.2.5''']
-
+    logging.debug('modules done.')
     jobstr += ['cuffmerge {} {} -p PPN {} -o {} {}'.format(defaults['cuffmerge_options'],
                                                            (('-g ' + ref['gff_genome']) if ref.get(
                                                                'gff_genome') else ''),
@@ -197,6 +198,7 @@ module load ngs tools cufflinks/2.2.1 tophat/2.1.1 bowtie2/2.2.5''']
                                                                                          'merged_asm'))),
                                                            (os.path.abspath(os.path.join(project_path, 'cmerge',
                                                                                          'assemblies.txt'))))]
+    logging.debug('command done.')
 
     return '\n\n'.join(jobstr).replace('PPN', ppn)
 
@@ -367,14 +369,18 @@ def job_submitter(project_path, groups, ref, defaults, ppn='8', readtype='raw', 
 
         try:
             js = merge_job(project_path=project_path, mapjobIDs=mapjobIDs, ref=ref, defaults=defaults)
+            logging.debug('script done.')
             jfn = os.path.join(project_path, 'job_files', 'job_cuffmerge.sh')
             jf = open(jfn, 'w')
             jf.write(js)
+            logging.debug('write done.')
             jf.close()
             p = subprocess.Popen(['qsub', jfn], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            logging.debug('submit done.')
             p.wait()
             out, err = p.communicate()
             mergejob = out.split(b'.')[0]
+            logging.debug('ID done.')
             os.system('sleep 0.5')
         except Exception as ex:
             logger.error(
@@ -435,4 +441,5 @@ def job_submitter(project_path, groups, ref, defaults, ppn='8', readtype='raw', 
                     type(ex).__name__, ex.args))
             return False
 
+    logging.info('All jobs are completed.')
     return True
