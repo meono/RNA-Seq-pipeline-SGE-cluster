@@ -68,9 +68,7 @@ module load ngs FastQC/0.11.2''']
     return '\n\n'.join(jobstr).replace('PPN', ppn)
 
 
-def mapandlink_jobs(project_path, sample, reads, defaults, ref, ppn='8', walltime='12:00:00', jobs=None):
-    if jobs is None:
-        jobs = ['hisat2', 'stringtie', 'cufflinks', 'htseq-count']
+def mapandlink_jobs(project_path, sample, reads, defaults, ref, jobs, ppn='8', walltime='12:00:00'):
 
     jobstr = []
     jobstr += [job_header.replace('JOBNAME', '_'.join([sample] + jobs)) \
@@ -146,7 +144,7 @@ samtools sort -@ PPN - {}'''.format(defaults['hisat2_options'],
     return '\n\n'.join(jobstr).replace('PPN', str(ppn))
 
 
-def merge_job(project_path, mapjobIDs, ppn='1', walltime='01:00:00', ref=None, defaults=None):
+def merge_job(project_path, mapjobIDs, ref, defaults, ppn='1', walltime='01:00:00'):
     logging.info('Using cuffmerge options: {}'.format(defaults['cuffmerge_options']))
     jobstr = []
     jobstr += [job_header.replace('JOBNAME', 'cuffmerge') \
@@ -284,28 +282,32 @@ def job_submitter(project_path, groups, ref, defaults, ppn='8', readtype='raw', 
     # TODO: Come up with a qc threshold to continue or terminate jobs. Use qcjobID from above.
 
     # generate and submit map and link jobs
-    try:
-        for group_name, group in groups.items():
-            mapjobIDs = []
-            samples = []
-            for sample, reads in group.items():
-                samples.append(sample)
-                js = mapandlink_jobs(project_path=project_path, sample=sample, reads=reads, ref=ref,
-                                     defaults=defaults, ppn=ppn, jobs=jobs)
-                jfn = os.path.join(project_path, 'job_files', 'job_{}_mapandlink.sh'.format(sample))
-                jf = open(jfn, 'w')
-                jf.write(js)
-                jf.close()
-                p = subprocess.Popen(['qsub', jfn], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-                p.wait()
-                out, err = p.communicate()
-                mapjobIDs.append(out.split(b'.')[0])
-                os.system('sleep 1')
-    except Exception as ex:
-        logger.error(
-            'Problem with map and link. RNAseq analysis is stopped.\nAn exception of type {} occured. Arguments:\n{}'.format(
-                type(ex).__name__, ex.args))
-        return False
+    mljobs = ['hisat2', 'stringtie', 'cufflinks', 'htseq-count']
+    if (any(job for job in jobs if job in mljobs)) or (jobs is None):
+        try:
+            for group_name, group in groups.items():
+                mapjobIDs = []
+                samples = []
+                for sample, reads in group.items():
+                    samples.append(sample)
+                    js = mapandlink_jobs(project_path=project_path, sample=sample, reads=reads, ref=ref,
+                                         defaults=defaults, ppn=ppn, jobs=jobs)
+                    jfn = os.path.join(project_path, 'job_files', 'job_{}_mapandlink.sh'.format(sample))
+                    jf = open(jfn, 'w')
+                    jf.write(js)
+                    jf.close()
+                    p = subprocess.Popen(['qsub', jfn], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                    p.wait()
+                    out, err = p.communicate()
+                    mapjobIDs.append(out.split(b'.')[0])
+                    os.system('sleep 1')
+        except Exception as ex:
+            logger.error(
+                'Problem with map and link. RNAseq analysis is stopped.\nAn exception of type {} occured. Arguments:\n{}'.format(
+                    type(ex).__name__, ex.args))
+            return False
+    else:
+        mapjobIDs = ['']
 
     # generate and submit merge job
     if ('cuffmerge' in jobs) or (jobs is None):
@@ -327,8 +329,6 @@ def job_submitter(project_path, groups, ref, defaults, ppn='8', readtype='raw', 
             return False
 
         try:
-            if 'mapjobIDs' not in locals():
-                mapjobIDs = ['']
             js = merge_job(project_path=project_path, mapjobIDs=mapjobIDs, ref=ref, defaults=defaults)
             jfn = os.path.join(project_path, 'job_files', 'job_cuffmerge.sh')
             jf = open(jfn, 'w')
