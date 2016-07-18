@@ -134,7 +134,7 @@ def check_project_path(project_path):
             project_path = os.path.abspath(project_path)
 
         if not os.path.exists(project_path):
-            create_path = input('This path does not exist. Do you want to create it? ([y]/n) ')
+            create_path = input('Given project path does not exist. Do you want to create it? ([y]/n) ')
             if (create_path.lower() == 'y') or (create_path.lower() == ''):
                 try:
                     os.mkdir(project_path)
