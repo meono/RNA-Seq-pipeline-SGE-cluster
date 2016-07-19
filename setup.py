@@ -7,7 +7,7 @@ requirements = ['validate_email>=1.3',
 
 setup(
     name='iLoop_RNAseq_pipeline',
-    version='0.1dev',
+    version='0.1',
     packages=['iLoop_RNAseq_pipeline'],
     license='Apache License, Version 2.0',
     include_package_data=True,
