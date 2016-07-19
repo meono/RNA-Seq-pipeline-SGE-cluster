@@ -10,7 +10,9 @@ job_header = \
     '''#!/bin/sh
 ### Account information
 #PBS -W group_list=PROJECT -A PROJECT
-# -- Name of the job ---
+# -- Job dependencies --
+#PBS -W depend=DEPEND
+# -- Name of the job --
 #PBS -N JOBNAME
 # -- estimated wall clock time (execution time): hh:mm:ss --
 #PBS -l walltime=WALLTIME
@@ -71,6 +73,7 @@ def fastqc_job(project_path, groups, output_path, defaults, ppn='8', walltime='0
     jobstr += [job_header.replace('JOBNAME', 'fastqc')
                    .replace('WALLTIME', walltime)
                    .replace('PROJECT', defaults['project'])
+                   .replace('DEPEND', '')
                    .replace('JOB_OUTPUTS', os.path.abspath(os.path.join(project_path, 'job_outputs')))
                    .replace('EMAILADDRESS', defaults['email'])]
 
@@ -93,6 +96,7 @@ def mapandlink_jobs(project_path, sample, reads, defaults, ref, jobs, ppn='8', w
     jobstr += [job_header.replace('JOBNAME', '_'.join([sample] + [job for job in jobs if job in mljobs]))
                    .replace('WALLTIME', walltime)
                    .replace('PROJECT', defaults['project'])
+                   .replace('DEPEND', '')
                    .replace('JOB_OUTPUTS', os.path.abspath(os.path.join(project_path, 'job_outputs')))
                    .replace('EMAILADDRESS', defaults['email'])]
 
@@ -180,10 +184,10 @@ def merge_job(project_path, mapjobIDs, ref, defaults, ppn='1', walltime='01:00:0
     jobstr += [job_header.replace('JOBNAME', 'cuffmerge')
                          .replace('WALLTIME', walltime)
                          .replace('PROJECT', defaults['project'])
+                         .replace('DEPEND', ('afterok:{}'.format(':'.join([mapjob for mapjob in mapjobIDs])) if mapjobIDs != [''] else ''))
                          .replace('JOB_OUTPUTS', os.path.abspath(os.path.join(project_path, 'job_outputs')))
                          .replace('EMAILADDRESS', defaults['email'])]
     # make this job depend on successful completion of previous jobs: mapandlink_jobs
-    jobstr += ['#PBS -W depend=afterok:{}'.format(':'.join([mapjob for mapjob in mapjobIDs]))]
 
     jobstr += ['''# Load modules needed by myapplication.x
 module load ngs tools cufflinks/2.2.1 tophat/2.1.1 bowtie2/2.2.5''']
@@ -299,7 +303,7 @@ def job_submitter(project_path, groups, ref, defaults, ppn='8', readtype='raw', 
                 p = subprocess.Popen(['qsub', jfn], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
                 p.wait()
                 out, err = p.communicate()
-                qcjobID = out.decode(sys.getdefaultencoding())
+                qcjobID = out.strip().decode(sys.getdefaultencoding())
                 os.system('sleep 0.5')
             else:
                 logger.info('Existing fastqc files found. Skipping quality check job.')
@@ -330,7 +334,7 @@ def job_submitter(project_path, groups, ref, defaults, ppn='8', readtype='raw', 
                     p = subprocess.Popen(['qsub', jfn], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
                     p.wait()
                     out, err = p.communicate()
-                    mapjobIDs.append(out.decode(sys.getdefaultencoding()))
+                    mapjobIDs.append(out.strip().decode(sys.getdefaultencoding()))
                     os.system('sleep 0.5')
         except Exception as ex:
             logger.error(
@@ -354,7 +358,7 @@ def job_submitter(project_path, groups, ref, defaults, ppn='8', readtype='raw', 
 
         try:
             af = open(os.path.join(project_path, 'cmerge', 'assemblies.txt'), 'w')
-            af.write('\n'.join([os.path.join(project_path, replicate, 'transcripts.gtf') for group in groups.values()
+            af.write('\n'.join([os.path.abspath(os.path.join(project_path, replicate, 'transcripts.gtf')) for group in groups.values()
                                 for replicate in group.keys()]))
             af.close()
             logger.info('"Assemblies.txt" is generated under "cmerge".')
@@ -373,7 +377,7 @@ def job_submitter(project_path, groups, ref, defaults, ppn='8', readtype='raw', 
             p = subprocess.Popen(['qsub', jfn], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             p.wait()
             out, err = p.communicate()
-            mergejob = out.decode(sys.getdefaultencoding())
+            mergejob = out.strip().decode(sys.getdefaultencoding())
             os.system('sleep 0.5')
         except Exception as ex:
             logger.error(
@@ -398,7 +402,7 @@ def job_submitter(project_path, groups, ref, defaults, ppn='8', readtype='raw', 
                     p = subprocess.Popen(['qsub', jfn], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
                     p.wait()
                     out, err = p.communicate()
-                    quantjobsIDs.append(out.decode(sys.getdefaultencoding()))
+                    quantjobsIDs.append(out.strip().decode(sys.getdefaultencoding()))
                     os.system('sleep 0.5')
         except Exception as ex:
             logger.error(
@@ -426,7 +430,7 @@ def job_submitter(project_path, groups, ref, defaults, ppn='8', readtype='raw', 
             p = subprocess.Popen(['qsub', jfn], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             p.wait()
             out, err = p.communicate()
-            diffjob = out.decode(sys.getdefaultencoding())
+            diffjob = out.strip().decode(sys.getdefaultencoding())
             os.system('sleep 0.5')
         except Exception as ex:
             logger.error(
