@@ -14,6 +14,7 @@ parser.add_argument('-r', '--read-path',
                     help='Path to reads folder(s). Can be suplied as comma separated string. All files under the path tree will be added.',
                     default=None)
 parser.add_argument('-j', '--jobs', help='Comma separated list of jobs to run.', default=[])
+parser.add_argument('-m', '--map-to-mask', help='Run a separate mapping pipeline to mask.', action='store_true', default=False)
 parser.add_argument('-n', '--number-of-cores', help='Number of cores to assign to individual jobs', default='8')
 parser.add_argument('-s', '--strain-code',
                     help='Code for the reference strain. Available strains and corresponding codes are on "RNAseq_pipeline_references.tsv".',
@@ -40,13 +41,14 @@ def main():
     groups = mm.find_groups(reads)
     essentials = [defaults, ref, reads, project_path, groups]
     if not any(ess for ess in essentials if not ess):
-        subs = mq.job_submitter(project_path=project_path,
+        subs = mq.job_organizer(project_path=project_path,
                                 groups=groups,
                                 readtype='raw',
                                 ref=ref,
                                 defaults=defaults,
                                 ppn=args.number_of_cores,
-                                jobs=jobs)
+                                jobs=jobs,
+                                map_to_mask=args.map_to_mask)
     else:
         logger.error('Something is missing: \n{}'.format(
             ', '.join([ess for ess in essentials if not ess])))
