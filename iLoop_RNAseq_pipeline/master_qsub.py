@@ -184,7 +184,8 @@ def merge_job(project_path, mapjobIDs, ref, defaults, ppn='1', walltime='01:00:0
     jobstr += [job_header.replace('JOBNAME', 'cuffmerge')
                          .replace('WALLTIME', walltime)
                          .replace('PROJECT', defaults['project'])
-                         .replace('DEPEND', ('afterok:{}'.format(':'.join([mapjob for mapjob in mapjobIDs])) if mapjobIDs != [''] else ''))
+                         .replace('DEPEND', (
+        'afterok:{}'.format(':'.join([mapjob for mapjob in mapjobIDs])) if mapjobIDs != [''] else ''))
                          .replace('JOB_OUTPUTS', os.path.abspath(os.path.join(project_path, 'job_outputs')))
                          .replace('EMAILADDRESS', defaults['email'])]
     # make this job depend on successful completion of previous jobs: mapandlink_jobs
@@ -210,6 +211,7 @@ def quant_jobs(project_path, sample, mergejob, ref, defaults, ppn='8', walltime=
     jobstr += [job_header.replace('JOBNAME', '_'.join([sample] + ['cuffquant']))
                    .replace('WALLTIME', walltime)
                    .replace('PROJECT', defaults['project'])
+                   .replace('DEPEND', 'afterok:{}'.format(mergejob))
                    .replace('JOB_OUTPUTS', os.path.abspath(os.path.join(project_path, 'job_outputs')))
                    .replace('EMAILADDRESS', defaults['email'])]
 
@@ -242,6 +244,8 @@ def diff_job(project_path, groups, quantjobsIDs, ppn='8', walltime='24:00:00', r
     jobstr += [job_header.replace('JOBNAME', 'cuffdiff')
                    .replace('WALLTIME', walltime)
                    .replace('PROJECT', defaults['project'])
+                   .replace('DEPEND', (
+        'afterok:{}'.format(':'.join([qjob for qjob in quantjobsIDs])) if quantjobsIDs != [''] else ''))
                    .replace('JOB_OUTPUTS', os.path.abspath(os.path.join(project_path, 'job_outputs')))
                    .replace('EMAILADDRESS', defaults['email'])]
 
