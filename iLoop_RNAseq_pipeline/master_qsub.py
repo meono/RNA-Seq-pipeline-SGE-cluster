@@ -373,7 +373,7 @@ def job_submitter(project_path, groups, ref, defaults, ppn='8', readtype='raw', 
             p = subprocess.Popen(['qsub', jfn], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             p.wait()
             out, err = p.communicate()
-            mergejob = out.split(b'.')[0]
+            mergejob = out.split(b'.')[0].decode(sys.getdefaultencoding())
             os.system('sleep 0.5')
         except Exception as ex:
             logger.error(
@@ -398,7 +398,7 @@ def job_submitter(project_path, groups, ref, defaults, ppn='8', readtype='raw', 
                     p = subprocess.Popen(['qsub', jfn], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
                     p.wait()
                     out, err = p.communicate()
-                    quantjobsIDs.append(out.split(b'.')[0])
+                    quantjobsIDs.append(out.split(b'.')[0].decode(sys.getdefaultencoding()))
                     os.system('sleep 0.5')
         except Exception as ex:
             logger.error(
@@ -426,7 +426,7 @@ def job_submitter(project_path, groups, ref, defaults, ppn='8', readtype='raw', 
             p = subprocess.Popen(['qsub', jfn], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             p.wait()
             out, err = p.communicate()
-            diffjob = out.split(b'.')[0]
+            diffjob = out.split(b'.')[0].decode(sys.getdefaultencoding())
             os.system('sleep 0.5')
         except Exception as ex:
             logger.error(
