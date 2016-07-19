@@ -299,7 +299,7 @@ def job_submitter(project_path, groups, ref, defaults, ppn='8', readtype='raw', 
                 p = subprocess.Popen(['qsub', jfn], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
                 p.wait()
                 out, err = p.communicate()
-                qcjobID = out.split(b'.')[0]
+                qcjobID = out.split(b'.')[0].decode(sys.getdefaultencoding())
                 os.system('sleep 0.5')
             else:
                 logger.info('Existing fastqc files found. Skipping quality check job.')
