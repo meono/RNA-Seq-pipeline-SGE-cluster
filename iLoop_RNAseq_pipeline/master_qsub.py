@@ -320,11 +320,9 @@ def job_submitter(project_path, groups, ref, defaults, ppn='8', readtype='raw', 
     mljobs = ['hisat2', 'stringtie', 'cufflinks', 'htseq-count']
     if (any(job for job in jobs if job in mljobs)) or (jobs == []):
         try:
+            mapjobIDs = []
             for group_name, group in groups.items():
-                mapjobIDs = []
-                samples = []
                 for sample, reads in group.items():
-                    samples.append(sample)
                     js = mapandlink_jobs(project_path=project_path, sample=sample, reads=reads, ref=ref,
                                          defaults=defaults, ppn=ppn, jobs=jobs)
                     jfn = os.path.join(project_path, 'job_files', 'job_{}_mapandlink.sh'.format(sample))
