@@ -405,7 +405,7 @@ def job_organizer(project_path, groups, ref, defaults, map_to_mask, ppn='8', rea
         mapjobIDs = ['']
 
     # collect htseq counts
-    if any(job for job in jobs if job in ['htseq-count', 'edgeR', 'DESeq']) or (jobs == []):
+    if any(job for job in jobs if job in ['htseq-count', 'edgeR', 'DESeq', 'htseq-count-collect']) or (jobs == []):
         try:
             js = collect_counts_job(project_path=project_path, output=results_path, mapjobIDs=mapjobIDs, defaults=defaults)
             collectjobID = job_submitter(js=js, path=job_files_path, name='job_htseq_count_collector.sh')
