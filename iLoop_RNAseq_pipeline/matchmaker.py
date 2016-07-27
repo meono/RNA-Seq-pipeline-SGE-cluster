@@ -1,8 +1,10 @@
 from __future__ import division, print_function
 import collections
+import json
 import logging
 
 logger = logging.getLogger(__name__)
+
 
 def check_read_uniqueness(reads):
     read_files = [read for read_list in reads.values() for read in read_list]
@@ -28,7 +30,7 @@ def check_read_uniqueness(reads):
 
 
 def lcs(file1, file2):
-    # find longest common substring from *beginning f the string*
+    # find longest common substring from *beginning of the string*
     for x in range(1, 1 + len(file1)):
         if file1[0:x] == file2[0:x]:
             tmp = file1[0:x]
@@ -36,23 +38,6 @@ def lcs(file1, file2):
         return tmp
     else:
         return ''
-
-    #TODO: remove below once above function is confirmed.
-    # this is unnecessary and fails for very short common names
-    # # find longest common substring
-    # # based on https://en.wikibooks.org/wiki/Algorithm_Implementation/Strings/Longest_common_substring
-    # m = [[0] * (1 + len(file2)) for i in range(1 + len(file1))]
-    # longest, x_longest = 0, 0
-    # for x in range(1, 1 + len(file1)):
-    #     for y in range(1, 1 + len(file2)):
-    #         if file1[x - 1] == file2[y - 1]:
-    #             m[x][y] = m[x - 1][y - 1] + 1
-    #             if m[x][y] > longest:
-    #                 longest = m[x][y]
-    #                 x_longest = x
-    #         else:
-    #             m[x][y] = 0
-    # return file1[x_longest - longest: x_longest]
 
 
 def find_base(read_file, read_files):
@@ -68,6 +53,7 @@ def find_base(read_file, read_files):
             rep = tmp
     return rep.strip('_')
 
+
 def print_experiment(groups):
     pstr = ''
     for group, replicates in groups.items():
@@ -78,6 +64,7 @@ def print_experiment(groups):
             for read in reads:
                 pstr += '\t\t' + read + '\n'
     return pstr
+
 
 def find_groups(reads):
 
@@ -101,59 +88,7 @@ def find_groups(reads):
             groups[basename][replicate].append('/'.join([dirName, read]))
 
     logger.info('Experiment setup:\n{}'.format(print_experiment(groups)))
+    logger.info('Writing groups to json: groups.json')
+    json.dump(groups, open('groups.json', 'w'))
     return groups
-
-
-
-
-    #     pairs = []
-    #     full_path = []
-    #     easy_read = []
-    #
-    #     for forward_file in glob.glob(os.path.join(my_input, '*_1.fastq.gz')):
-    #         forward_path, forward_name = forward_file.rsplit("/", 1)
-    #         sample_id, ext = forward_name.rsplit("_", 1)
-    #         reverse_name = sample_id + '_2.fastq.gz'
-    #
-    #         if os.path.isfile(reverse_name) is True:
-    #             pairs.append((forward_name, reverse_name))
-    #             full_path.append((forward_file, os.path.join(forward_path+"/"+reverse_name)))
-    #
-    #     for index, item in enumerate(pairs, start=1):
-    #         easy_read.append((index, item))
-    #
-    #     table = tabulate(easy_read, headers=["#", "Pair"], tablefmt="grid")
-    #     print (table)
-    #
-    #     mates_q = input("Are these pairings correct? ([y]/n) ")
-    #     if mates_q.lower() != "y":
-    #         print("Run aborted. Double check file names.")
-    #         return
-    #     else:
-    #         print ("Ok saving table to Matchmaker folder")
-    #         filename = os.path.join(output_path, 'table_pairs.txt')
-    #         f = open(filename, 'w')
-    #         f.write(table)
-    #         f.close()
-    #
-    #     # correct delimiters for the cluster
-    #     data_files = []
-    #     for i in range(len(full_path)):
-    #         data_files.append(str.join(' ', full_path[i]))
-    #
-    # else:
-    #     print("Run aborted.")
-    #     return
-    #
-    # task_count = len(data_files)
-    # assert task_count > 0, "Could not find any fastq files in folder %s" % my_input
-    #
-    #
-    # list_index=os.path.join(output_path,'read_files.txt')
-    # f=open(list_index,'w')
-    # f.write(str(data_files))
-    # f.close()
-    # print ("All done! Files are located in %s" %output_path)
-
-# get path and run!
 

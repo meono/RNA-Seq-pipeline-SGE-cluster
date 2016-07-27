@@ -1,6 +1,7 @@
 Note,You can use this file as template. Modify it and leave it under your home folder to use as default. A single space usually means no parameters will be used.
 email,youremail@here . com
 project,projectid
+RNAseq_env,python_environment_for_RNAseq
 hisat2_options,-q --no-spliced-alignment --rna-strandness RF --dta
 stringtie_options,-B -e
 tophat2_options,

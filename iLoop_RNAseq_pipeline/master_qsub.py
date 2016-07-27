@@ -3,6 +3,7 @@ import os
 import subprocess
 import logging
 import sys
+import iLoop_RNAseq_pipeline
 
 logger = logging.getLogger(__name__)
 
@@ -175,7 +176,7 @@ samtools sort -@ PPN - {}'''.format(defaults['hisat2_options'],
                                                                                      os.path.join(project_path, sample,
                                                                                                   'accepted_hits.sorted.bam'))))]
 
-    if 'htseq-count' in jobs:
+    if any(job for job in jobs if job in ['htseq-count', 'edgeR', 'DESeq']):
         logger.info('Using htseq options: {}'.format(defaults['htseq_options']))
         jobstr += ['echo "htseq"\nhtseq-count {} -f bam {} {} -o {} > {}'.format(defaults['htseq_options'],
                                                                                  (os.path.abspath(
@@ -193,6 +194,28 @@ samtools sort -@ PPN - {}'''.format(defaults['hisat2_options'],
     return '\n\n'.join(jobstr).replace('PPN', ppn)
 
 
+def collect_counts_job(project_path, output, mapjobIDs, defaults, ppn='1', walltime="00:05:00"):
+    jobstr = []
+    jobstr += [job_header.replace('JOBNAME', 'collect_counts')
+                   .replace('WALLTIME', walltime)
+                   .replace('PROJECT', defaults['project'])
+                   .replace('DEPEND', (
+        'afterok:{}'.format(':'.join([mapjob for mapjob in mapjobIDs])) if mapjobIDs != [''] else ''))
+                   .replace('JOB_OUTPUTS', os.path.abspath(os.path.join(project_path, 'job_outputs')))
+                   .replace('EMAILADDRESS', defaults['email'])]
+
+    # Pass all environmental variables to the job - this should take care of the virtual environment issue
+    # TODO: clear out virtual environment arguments if this works
+    jobstr += ['#PBS -V']
+
+    jobstr += ['python {}/htseq_count_collector.py -p {} -g {} -o {} '.format(os.path.abspath(iLoop_RNAseq_pipeline.__path__[0], 'scripts'),
+                                                                              project_path,
+                                                                              os.path.abspath(os.path.join(project_path, 'groups.json')),
+                                                                              output)]
+
+    return '\n\n'.join(jobstr).replace('PPN', ppn)
+
+
 def merge_job(project_path, mapjobIDs, ref, defaults, ppn='1', walltime='01:00:00'):
     logger.info('Using cuffmerge options: {}'.format(defaults['cuffmerge_options']))
     jobstr = []
@@ -203,7 +226,6 @@ def merge_job(project_path, mapjobIDs, ref, defaults, ppn='1', walltime='01:00:0
         'afterok:{}'.format(':'.join([mapjob for mapjob in mapjobIDs])) if mapjobIDs != [''] else ''))
                          .replace('JOB_OUTPUTS', os.path.abspath(os.path.join(project_path, 'job_outputs')))
                          .replace('EMAILADDRESS', defaults['email'])]
-    # make this job depend on successful completion of previous jobs: mapandlink_jobs
 
     jobstr += ['''# Load modules needed by myapplication.x
 module load ngs tools cufflinks/2.2.1 tophat/2.1.1 bowtie2/2.2.5''']
@@ -321,6 +343,12 @@ def job_organizer(project_path, groups, ref, defaults, map_to_mask, ppn='8', rea
     except FileExistsError:
         logger.warning('Folder for job outputs exists.')
 
+    try:
+        results_path = os.path.abspath(os.path.join(project_path, 'results'))
+        os.mkdir(os.path.join(results_path))
+    except FileExistsError:
+        logger.warning('Folder for results exists.')
+
     # do quality checks
     if ('fastqc' in jobs) or (jobs == []):
         try:
@@ -375,6 +403,17 @@ def job_organizer(project_path, groups, ref, defaults, map_to_mask, ppn='8', rea
 
     else:
         mapjobIDs = ['']
+
+    # collect htseq counts
+    if any(job for job in jobs if job in ['htseq-count', 'edgeR', 'DESeq']) or (jobs == []):
+        try:
+            js = collect_counts_job(project_path=project_path, output=results_path, mapjobIDs=mapjobIDs, defaults=defaults)
+            collectjobID = job_submitter(js=js, path=job_files_path, name='job_htseq_count_collector.sh')
+        except Exception as ex:
+            logger.error(
+                'Problem with HTseq-count collector. RNAseq analysis is stopped.\nAn exception of type {} occured. Arguments:\n{}'.format(
+                    type(ex).__name__, ex.args))
+            return False
 
     # generate and submit merge job
     if ('cuffmerge' in jobs) or (jobs == []):
@@ -440,6 +479,7 @@ def job_organizer(project_path, groups, ref, defaults, map_to_mask, ppn='8', rea
                 'Problem with Cuffdiff. RNAseq analysis is stopped.\nAn exception of type {} occured. Arguments:\n{}'.format(
                     type(ex).__name__, ex.args))
             return False
+
 
     logger.info('All jobs are completed.')
     return True
