@@ -178,7 +178,7 @@ samtools sort -@ PPN - {}'''.format(defaults['hisat2_options'],
 
     if any(job for job in jobs if job in ['htseq-count', 'edgeR', 'DESeq']):
         logger.info('Using htseq options: {}'.format(defaults['htseq_options']))
-        jobstr += ['echo "htseq"\nhtseq-count {} -f bam {} {} -o {} > {}'.format(defaults['htseq_options'],
+        jobstr += ['echo "htseq"\nhtseq-count {} -f bam -r pos {} {} -o {} > {}'.format(defaults['htseq_options'],
                                                                                  (os.path.abspath(
                                                                                      os.path.join(project_path, sample,
                                                                                                   'accepted_hits.sorted.bam'))),
