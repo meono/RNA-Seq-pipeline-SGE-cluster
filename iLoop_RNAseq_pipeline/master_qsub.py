@@ -208,9 +208,9 @@ def collect_counts_job(project_path, output, mapjobIDs, defaults, ppn='1', wallt
     # TODO: clear out virtual environment arguments if this works
     jobstr += ['#PBS -V']
 
-    jobstr += ['python {}/htseq_count_collector.py -p {} -g {} -o {} '.format(os.path.abspath(iLoop_RNAseq_pipeline.__path__[0], 'scripts'),
+    jobstr += ['python {}/htseq_count_collector.py -p {} -g {} -o {} '.format(os.path.abspath(os.path.join(iLoop_RNAseq_pipeline.__path__[0], 'scripts')),
                                                                               project_path,
-                                                                              os.path.abspath(os.path.join(project_path, 'groups.json')),
+                                                                              os.path.abspath(os.path.join(os.path.join(project_path, 'groups.json'))),
                                                                               output)]
 
     return '\n\n'.join(jobstr).replace('PPN', ppn)
