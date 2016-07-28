@@ -27,4 +27,4 @@ Optional: An environmental variable "RNAseq_env" for the virtual environment nam
 
 ##Requirements:
 HISAT2 and htseq-count depends on local installations due to version issues. The rest of the packages are used through Computerome module system.
-A python virtual environment to enable running scripts under job. Must be set up to work with virtualenvwrapper.
+A local installation of featureCounts since the module version is old. 

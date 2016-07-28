@@ -67,23 +67,6 @@ def get_defaults():
         f.write('\nproject,{}'.format(project))
         f.close()
 
-    while True:
-        # TODO: ideally this should check whether the given virtual environment has the package installed.
-        # try:
-        #     import iLoop_RNAseq_pipeline
-        #     break
-        # except ImportError:
-        #     logger.warning('iLoop_RNAseq_pipeline is not available.')
-        #     pass
-
-        if (('RNAseq_env' not in defaults) or (defaults['RNAseq_env'] == 'python_environment_for_RNAseq')):
-            if os.getenv('RNAseq_env') is not None:
-                defaults['RNAseq_env'] = os.getenv('RNAseq_env')
-                break
-            else:
-                defaults['RNAseq_env'] = input('Enter python environment for RNAseq where iLoop_RNAseq_pipeline is installed.')
-                break
-
     return defaults
 
 

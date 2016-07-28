@@ -90,7 +90,7 @@ module load ngs FastQC/0.11.2''']
 
 
 def mapandlink_jobs(project_path, sample, reads, defaults, ref, jobs, ppn='8', walltime='12:00:00', map_to_mask=False):
-    mljobs = ['hisat2', 'stringtie', 'cufflinks', 'htseq-count']
+    mljobs = ['hisat2', 'stringtie', 'cufflinks', 'htseq-count', 'featureCounts']
     if map_to_mask:
         jobs = ['hisat2_to_mask']
     elif (jobs == []) and (map_to_mask == False):
@@ -111,10 +111,10 @@ PATH=$PATH:/home/projects/cu_10010/programs/hisat2-2.0.4:/home/projects/cu_10010
 export PATH''']
 
     jobstr += ['export hisat2_genomic_indexes={}'.format(ref['hisat2_genomic_indexes'])]
-    if map_to_mask:
-        jobstr += ['mkdir -p {}/{}/{}'.format(project_path, 'map_to_mask', sample)]
-    else:
-        jobstr += ['mkdir {}/{}'.format(project_path, sample)]
+    if (map_to_mask) and (not os.path.exists(os.path.join(project_path, 'map_to_mask', sample))):
+        jobstr += ['mkdir -p {}'.format(os.path.abspath(os.path.join(project_path, 'map_to_mask', sample)))]
+    elif not os.path.exists(os.path.join(project_path, sample)):
+        jobstr += ['mkdir {}'.format(os.path.abspath(os.path.join(project_path, sample)))]
 
     R1reads = [read for read in reads if read[-15:-13] == 'R1']
     R1reads.sort()
@@ -176,20 +176,41 @@ samtools sort -@ PPN - {}'''.format(defaults['hisat2_options'],
                                                                                      os.path.join(project_path, sample,
                                                                                                   'accepted_hits.sorted.bam'))))]
 
-    if any(job for job in jobs if job in ['htseq-count', 'edgeR', 'DESeq']):
+    # htseq-count doesn't work well with positional sorted bam files. Switch to featureCounts from subread package
+    # if any(job for job in jobs if job in ['htseq-count', 'edgeR', 'DESeq']):
+    #     logger.info('Using htseq options: {}'.format(defaults['htseq_options']))
+    #     jobstr += ['echo "htseq"\nhtseq-count {} -f bam -r pos {} {} -o {} > {}'.format(defaults['htseq_options'],
+    #                                                                              (os.path.abspath(
+    #                                                                                  os.path.join(project_path, sample,
+    #                                                                                               'accepted_hits.sorted.bam'))),
+    #                                                                              ((ref['gff_genome']) if ref.get(
+    #                                                                                  'gff_genome') else ''),
+    #                                                                              (os.path.abspath(
+    #                                                                                  os.path.join(project_path, sample,
+    #                                                                                               'htseq_counts.sam'))),
+    #                                                                              (os.path.abspath(
+    #                                                                                  os.path.join(project_path, sample,
+    #                                                                                               'htseq_counts.out'))))]
+
+    # it turnsout featureCounts does a name based sorting before operating. therefore this might be just as inefficient.
+    if any(job for job in jobs if job in ['featureCounts', 'edgeR', 'DESeq']):
         logger.info('Using htseq options: {}'.format(defaults['htseq_options']))
-        jobstr += ['echo "htseq"\nhtseq-count {} -f bam -r pos {} {} -o {} > {}'.format(defaults['htseq_options'],
-                                                                                 (os.path.abspath(
-                                                                                     os.path.join(project_path, sample,
-                                                                                                  'accepted_hits.sorted.bam'))),
-                                                                                 ((ref['gff_genome']) if ref.get(
-                                                                                     'gff_genome') else ''),
-                                                                                 (os.path.abspath(
-                                                                                     os.path.join(project_path, sample,
-                                                                                                  'htseq_counts.sam'))),
-                                                                                 (os.path.abspath(
-                                                                                     os.path.join(project_path, sample,
-                                                                                                  'htseq_counts.out'))))]
+        jobstr += ['echo "featureCounts"\nfeatureCounts {} -a {} -g {} -o {} {}'.format(defaults['featureCounts_options'],
+                                                                                        (os.path.abspath(
+                                                                                            os.path.join(project_path,
+                                                                                                         sample,
+                                                                                                         'accepted_hits.sorted.bam'))),
+                                                                                        ((ref['gff_genome']) if ref.get(
+                                                                                            'gff_genome') else ''),
+                                                                                        ((ref['fa_genome']) if ref.get(
+                                                                                            'fa_genome') else ''),
+                                                                                        (os.path.abspath(os.path.join(project_path,
+                                                                                                                      sample,
+                                                                                                                      'htseq_counts.out'))),
+                                                                                        (os.path.abspath(
+                                                                                            os.path.join(project_path,
+                                                                                                         sample,
+                                                                                                         'htseq_counts.sam'))))]
 
     return '\n\n'.join(jobstr).replace('PPN', ppn)
 
@@ -208,8 +229,15 @@ def collect_counts_job(project_path, output, mapjobIDs, defaults, ppn='1', wallt
     # TODO: clear out virtual environment arguments if this works
     jobstr += ['#PBS -V']
 
+    # this is for htseq-count, which won't be used. For now, featureCounts will be used.
+    # jobstr += ['python {}/htseq_count_collector.py -p {} -g {} -o {} '.format(os.path.abspath(os.path.join(iLoop_RNAseq_pipeline.__path__[0], 'scripts')),
+    #                                                                           os.path.abspath(project_path),
+    #                                                                           os.path.abspath(os.path.join(os.path.join(project_path, 'groups.json'))),
+    #                                                                           output)]
+
+    # line for featureCounts
     jobstr += ['python {}/htseq_count_collector.py -p {} -g {} -o {} '.format(os.path.abspath(os.path.join(iLoop_RNAseq_pipeline.__path__[0], 'scripts')),
-                                                                              project_path,
+                                                                              os.path.abspath(project_path),
                                                                               os.path.abspath(os.path.join(os.path.join(project_path, 'groups.json'))),
                                                                               output)]
 
@@ -407,7 +435,7 @@ def job_organizer(project_path, groups, ref, defaults, map_to_mask, ppn='8', rea
     # collect htseq counts
     if any(job for job in jobs if job in ['htseq-count', 'edgeR', 'DESeq', 'htseq-count-collect']) or (jobs == []):
         try:
-            js = collect_counts_job(project_path=project_path, output=results_path, mapjobIDs=mapjobIDs, defaults=defaults)
+            js = collect_counts_job(project_path=project_path, output=os.path.abspath(os.path.join(results_path, 'htseq_counts_collected')), mapjobIDs=mapjobIDs, defaults=defaults)
             collectjobID = job_submitter(js=js, path=job_files_path, name='job_htseq_count_collector.sh')
         except Exception as ex:
             logger.error(
