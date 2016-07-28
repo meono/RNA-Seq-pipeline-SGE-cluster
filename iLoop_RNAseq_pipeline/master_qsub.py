@@ -195,18 +195,12 @@ samtools sort -@ PPN - {}'''.format(defaults['hisat2_options'],
     # it turnsout featureCounts does a name based sorting before operating. therefore this might be just as inefficient.
     if any(job for job in jobs if job in ['featureCounts', 'edgeR', 'DESeq']):
         logger.info('Using htseq options: {}'.format(defaults['htseq_options']))
-        jobstr += ['echo "featureCounts"\nfeatureCounts {} -a {} -g {} -o {} {}'.format(defaults['featureCounts_options'],
-                                                                                        (os.path.abspath(
-                                                                                            os.path.join(project_path,
-                                                                                                         sample,
-                                                                                                         'accepted_hits.sorted.bam'))),
+        jobstr += ['echo "featureCounts"\nfeatureCounts {} -a {} -o {} {}'.format(defaults['featureCounts_options'],
                                                                                         ((ref['gff_genome']) if ref.get(
                                                                                             'gff_genome') else ''),
-                                                                                        ((ref['fa_genome']) if ref.get(
-                                                                                            'fa_genome') else ''),
                                                                                         (os.path.abspath(os.path.join(project_path,
                                                                                                                       sample,
-                                                                                                                      'htseq_counts.out'))),
+                                                                                                                      'featureCounts_', sample, '.out'))),
                                                                                         (os.path.abspath(
                                                                                             os.path.join(project_path,
                                                                                                          sample,
@@ -410,7 +404,7 @@ def job_organizer(project_path, groups, ref, defaults, map_to_mask, ppn='8', rea
             return False
     # TODO: a threshold for mapping to mask/genome can be used to decide whether to go forward or stop pipeline. At least generate a warning.
 
-    mljobs = ['hisat2', 'stringtie', 'cufflinks', 'htseq-count']
+    mljobs = ['hisat2', 'stringtie', 'cufflinks', 'htseq-count', 'featureCounts']
     if (any(job for job in jobs if job in mljobs)) or (jobs == []):
         try:
             mapjobIDs = []
