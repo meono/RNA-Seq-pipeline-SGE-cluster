@@ -10,4 +10,4 @@ cuffmerge_options,
 cuffdiff_options,--library-type fr-firststrand --upper-quartile-norm
 cuffquant_options,--library-type fr-firststrand --max-bundle-frags 25000000
 htseq_options,-q --type=gene --idattr=gene_name --stranded=reverse
-featureCounts_options,-s 2 -t gene -g gene_name
+featureCounts_options,-p -s 2 -t gene -g gene_name

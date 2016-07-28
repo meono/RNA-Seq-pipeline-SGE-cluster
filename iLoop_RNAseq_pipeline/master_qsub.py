@@ -200,11 +200,10 @@ samtools sort -@ PPN - {}'''.format(defaults['hisat2_options'],
                                                                                             'gff_genome') else ''),
                                                                                         (os.path.abspath(os.path.join(project_path,
                                                                                                                       sample,
-                                                                                                                      'featureCounts_', sample, '.out'))),
-                                                                                        (os.path.abspath(
-                                                                                            os.path.join(project_path,
-                                                                                                         sample,
-                                                                                                         'htseq_counts.sam'))))]
+                                                                                                                      'featureCounts_{}.out'.format(sample)))),
+                                                                                        (os.path.abspath(os.path.join(project_path,
+                                                                                                                      sample,
+                                                                                                                      'accepted_hits.sorted.bam'))))]
 
     return '\n\n'.join(jobstr).replace('PPN', ppn)
 
