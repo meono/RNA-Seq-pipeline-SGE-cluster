@@ -17,8 +17,19 @@ args = parser.parse_args()
 
 groups = json.load(open(args.groups_json, 'r'))
 
-df = pd.concat([pd.io.parsers.read_table(os.path.join(os.path.abspath(args.project_path), sample, 'htseq_counts.out'), header=None, index_col=0, names=[sample]) for group in groups.values() for sample in group.keys()], axis=1)
-df_stats = df.tail(5).copy()
-df = df.drop(df.tail(5).index)
+df = pd.concat([pd.read_table(os.path.join(os.path.abspath(project_path),
+                                           sample,
+                                           'featureCounts_{}.out'.format(sample)),
+                              header=1,
+                              skiprows=1,
+                              index_col=0,
+                              usecols=[0,6],
+                              names=['Feature', sample]) for group in groups.values() for sample in group.keys()], axis=1)
+df_stats = pd.concat([pd.read_table(os.path.join(os.path.abspath(project_path),
+                                                 sample,
+                                                 'featureCounts_{}.out.summary'.format(sample)),
+                                    header=1,
+                                    index_col=0,
+                                    names=['Status', sample]) for group in groups.values() for sample in group.keys()], axis=1)
 df.to_csv('{}.csv'.format(args.output))
-df_stats.to_csv('{}_stats.csv'.format(args.output))
+df_stats.to_csv('{}_summary.csv'.format(args.output))
