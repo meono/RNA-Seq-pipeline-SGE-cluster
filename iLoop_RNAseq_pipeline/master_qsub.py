@@ -229,10 +229,10 @@ def collect_counts_job(project_path, output, mapjobIDs, defaults, ppn='1', wallt
     #                                                                           output)]
 
     # line for featureCounts
-    jobstr += ['python {}/htseq_count_collector.py -p {} -g {} -o {} '.format(os.path.abspath(os.path.join(iLoop_RNAseq_pipeline.__path__[0], 'scripts')),
-                                                                              os.path.abspath(project_path),
-                                                                              os.path.abspath(os.path.join(os.path.join(project_path, 'groups.json'))),
-                                                                              output)]
+    jobstr += ['python {}/featureCounts_collector.py -p {} -g {} -o {} '.format(os.path.abspath(os.path.join(iLoop_RNAseq_pipeline.__path__[0], 'scripts')),
+                                                                                os.path.abspath(project_path),
+                                                                                os.path.abspath(os.path.join(os.path.join(project_path, 'groups.json'))),
+                                                                                output)]
 
     return '\n\n'.join(jobstr).replace('PPN', ppn)
 
@@ -425,16 +425,27 @@ def job_organizer(project_path, groups, ref, defaults, map_to_mask, ppn='8', rea
     else:
         mapjobIDs = ['']
 
-    # collect htseq counts
-    if any(job for job in jobs if job in ['htseq-count', 'edgeR', 'DESeq', 'htseq-count-collect']) or (jobs == []):
+    # collect htseq counts - Ignore this since featureCounts is prefered now
+    # if any(job for job in jobs if job in ['htseq-count', 'edgeR', 'DESeq', 'htseq-count-collect']) or (jobs == []):
+    #     try:
+    #         js = collect_counts_job(project_path=project_path, output=os.path.abspath(os.path.join(results_path, 'htseq_counts_collected')), mapjobIDs=mapjobIDs, defaults=defaults)
+    #         collectjobID = job_submitter(js=js, path=job_files_path, name='job_htseq_count_collector.sh')
+    #     except Exception as ex:
+    #         logger.error(
+    #             'Problem with HTseq-count collector. RNAseq analysis is stopped.\nAn exception of type {} occured. Arguments:\n{}'.format(
+    #                 type(ex).__name__, ex.args))
+    #         return False
+
+    if any(job for job in jobs if job in ['featureCounts', 'edgeR', 'DESeq', 'featureCounts-collect']) or (jobs == []):
         try:
-            js = collect_counts_job(project_path=project_path, output=os.path.abspath(os.path.join(results_path, 'htseq_counts_collected')), mapjobIDs=mapjobIDs, defaults=defaults)
-            collectjobID = job_submitter(js=js, path=job_files_path, name='job_htseq_count_collector.sh')
+            js = collect_counts_job(project_path=project_path, output=os.path.abspath(os.path.join(results_path, 'featureCounts_collected')), mapjobIDs=mapjobIDs, defaults=defaults)
+            collectjobID = job_submitter(js=js, path=job_files_path, name='job_featureCounts_collector.sh')
         except Exception as ex:
             logger.error(
-                'Problem with HTseq-count collector. RNAseq analysis is stopped.\nAn exception of type {} occured. Arguments:\n{}'.format(
+                'Problem with featureCounts collector. RNAseq analysis is stopped.\nAn exception of type {} occured. Arguments:\n{}'.format(
                     type(ex).__name__, ex.args))
             return False
+
 
     # generate and submit merge job
     if ('cuffmerge' in jobs) or (jobs == []):
