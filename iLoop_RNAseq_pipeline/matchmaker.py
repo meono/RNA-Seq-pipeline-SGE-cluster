@@ -1,6 +1,7 @@
 from __future__ import division, print_function
 import collections
 import json
+import os
 import logging
 
 logger = logging.getLogger(__name__)
@@ -66,7 +67,7 @@ def print_experiment(groups):
     return pstr
 
 
-def find_groups(reads):
+def find_groups(project_path, reads):
 
     # check if there are reads with the same name under different folders
     if not check_read_uniqueness(reads):
@@ -88,7 +89,9 @@ def find_groups(reads):
             groups[basename][replicate].append('/'.join([dirName, read]))
 
     logger.info('Experiment setup:\n{}'.format(print_experiment(groups)))
-    logger.info('Writing groups to json: groups.json')
-    json.dump(groups, open('groups.json', 'w'))
+    logger.info('Writing groups to json: inputs/groups.json')
+    if not os.path.exists(os.path.abspath(os.path.join(project_path, 'inputs'))):
+        os.mkdir(os.path.abspath(os.path.join(project_path, 'inputs')))
+    json.dump(groups, open(os.path.abspath(os.path.join(project_path, 'inputs', 'groups.json')), 'w'))
     return groups
 

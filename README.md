@@ -26,5 +26,12 @@ Package includes templates for "RNAseq_pipeline_defaults.txt" and "RNAseq_pipeli
 Optional: An environmental variable "RNAseq_env" for the virtual environment name (if installed as such) where iLoop_RNAseq_pipeline package is installed. 
 
 ##Requirements:
+
 HISAT2 and htseq-count depends on local installations due to version issues. The rest of the packages are used through Computerome module system.
-A local installation of featureCounts since the module version is old. 
+
+A local installation of featureCounts since the module version is old.
+
+R packages:
+- edgeR
+- DESeq
+- optparse

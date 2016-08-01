@@ -1,5 +1,7 @@
 from __future__ import division, print_function
 import os
+from os.path import abspath
+from os.path import join as join_path
 import subprocess
 import logging
 import sys
@@ -33,11 +35,11 @@ def check_fastqc(groups, output_path):
     """Checks if fastqc files exists and are not empty."""
     for readf in [readf for group in groups.values() for readfs in group.values() for readf in readfs]:
         qcf = readf.split('.')[0].split('/')[-1]
-        if (not os.path.isfile(os.path.join(output_path, qcf + '_fastqc.zip'))) or \
-                (not os.path.isfile(os.path.join(output_path, qcf + '_fastqc.html'))):
+        if (not os.path.isfile(join_path(output_path, qcf + '_fastqc.zip'))) or \
+                (not os.path.isfile(join_path(output_path, qcf + '_fastqc.html'))):
             return False
-        elif (os.path.getsize(os.path.join(output_path, qcf + '_fastqc.zip')) == 0) or \
-                (os.path.getsize(os.path.join(output_path, qcf + '_fastqc.html')) == 0):
+        elif (os.path.getsize(join_path(output_path, qcf + '_fastqc.zip')) == 0) or \
+                (os.path.getsize(join_path(output_path, qcf + '_fastqc.html')) == 0):
             return False
     return True
 
@@ -48,9 +50,9 @@ def check_mapandlink(groups, project_path):
     check = True
     for group in groups.values():
         for replicate in group.keys():
-            cfs = [file for file in os.listdir(os.path.join(project_path, replicate)) if file.endswith('tracking')]
+            cfs = [file for file in os.listdir(join_path(project_path, replicate)) if file.endswith('tracking')]
             for file in cfs:
-                with open(os.path.join(project_path, replicate, file), 'r') as cf:
+                with open(join_path(project_path, replicate, file), 'r') as cf:
                     s = cf.read()
                     cf.close()
                 if 'HIDATA' in s:
@@ -75,7 +77,7 @@ def fastqc_job(project_path, groups, output_path, defaults, ppn='8', walltime='0
                    .replace('WALLTIME', walltime)
                    .replace('PROJECT', defaults['project'])
                    .replace('DEPEND', '')
-                   .replace('JOB_OUTPUTS', os.path.abspath(os.path.join(project_path, 'job_outputs')))
+                   .replace('JOB_OUTPUTS', abspath(join_path(project_path, 'job_outputs')))
                    .replace('EMAILADDRESS', defaults['email'])]
 
     jobstr += ['''# Load modules needed by myapplication.x
@@ -101,7 +103,7 @@ def mapandlink_jobs(project_path, sample, reads, defaults, ref, jobs, ppn='8', w
                    .replace('WALLTIME', walltime)
                    .replace('PROJECT', defaults['project'])
                    .replace('DEPEND', '')
-                   .replace('JOB_OUTPUTS', os.path.abspath(os.path.join(project_path, 'job_outputs')))
+                   .replace('JOB_OUTPUTS', abspath(join_path(project_path, 'job_outputs')))
                    .replace('EMAILADDRESS', defaults['email'])]
 
     jobstr += ['''# Load modules needed by myapplication.x
@@ -111,10 +113,10 @@ PATH=$PATH:/home/projects/cu_10010/programs/hisat2-2.0.4:/home/projects/cu_10010
 export PATH''']
 
     jobstr += ['export hisat2_genomic_indexes={}'.format(ref['hisat2_genomic_indexes'])]
-    if (map_to_mask) and (not os.path.exists(os.path.join(project_path, 'map_to_mask', sample))):
-        jobstr += ['mkdir -p {}'.format(os.path.abspath(os.path.join(project_path, 'map_to_mask', sample)))]
-    elif not os.path.exists(os.path.join(project_path, sample)):
-        jobstr += ['mkdir {}'.format(os.path.abspath(os.path.join(project_path, sample)))]
+    if (map_to_mask) and (not os.path.exists(join_path(project_path, 'map_to_mask', sample))):
+        jobstr += ['mkdir -p {}'.format(abspath(join_path(project_path, 'map_to_mask', sample)))]
+    elif not os.path.exists(join_path(project_path, sample)):
+        jobstr += ['mkdir {}'.format(abspath(join_path(project_path, sample)))]
 
     R1reads = [read for read in reads if read[-15:-13] == 'R1']
     R1reads.sort()
@@ -128,8 +130,8 @@ export PATH''']
                                         (ref['hisat2_mask_indexes']),
                                         ('-1' + ','.join(R1reads)),
                                         ('-2' + ','.join(R2reads)),
-                                        (os.path.abspath(os.path.join(project_path, 'map_to_mask', sample, 'accepted_hits.sam'))),
-                                        (os.path.abspath(os.path.join(project_path, 'map_to_mask', sample, 'align_summary.txt'))))]
+                                        (abspath(join_path(project_path, 'map_to_mask', sample, 'accepted_hits.sam'))),
+                                        (abspath(join_path(project_path, 'map_to_mask', sample, 'align_summary.txt'))))]
     elif (ref.get('hisat2_genomic_indexes')) and ('hisat2' in jobs):
         logger.info('Using hisat2 options: {}'.format(defaults['hisat2_options']))
         jobstr += ['''echo "hisat2"
@@ -139,8 +141,8 @@ samtools sort -@ PPN - {}'''.format(defaults['hisat2_options'],
                                     ref['hisat2_genomic_indexes'],
                                     ('-1' + ','.join(R1reads)),
                                     ('-2' + ','.join(R2reads)),
-                                    (os.path.abspath(os.path.join(project_path, sample, 'align_summary.txt'))),
-                                    (os.path.abspath(os.path.join(project_path, sample, 'accepted_hits.sorted'))))]
+                                    (abspath(join_path(project_path, sample, 'align_summary.txt'))),
+                                    (abspath(join_path(project_path, sample, 'accepted_hits.sorted'))))]
 
     if 'stringtie' in jobs:
         logger.warning('Beware: Stringtie does not allow masking for now.')
@@ -149,16 +151,16 @@ samtools sort -@ PPN - {}'''.format(defaults['hisat2_options'],
                                                                                     (('-G ' + ref[
                                                                                         'gff_genome']) if ref.get(
                                                                                         'gff_genome') else ''),
-                                                                                    os.path.abspath(
-                                                                                        os.path.join(project_path,
+                                                                                    abspath(
+                                                                                        join_path(project_path,
                                                                                                      sample,
                                                                                                      'transcripts.gtf')),
-                                                                                    os.path.abspath(
-                                                                                        os.path.join(project_path,
+                                                                                    abspath(
+                                                                                        join_path(project_path,
                                                                                                      sample,
                                                                                                      'gene_abund.tab')),
-                                                                                    os.path.abspath(
-                                                                                        os.path.join(project_path,
+                                                                                    abspath(
+                                                                                        join_path(project_path,
                                                                                                      sample,
                                                                                                      'accepted_hits.sorted.bam')))]
 
@@ -169,27 +171,27 @@ samtools sort -@ PPN - {}'''.format(defaults['hisat2_options'],
                                                                                      'gff_genome') else '',
                                                                                  ('-M ' + ref['gff_mask']) if ref.get(
                                                                                      'gff_mask') else '',
-                                                                                 (os.path.abspath(
-                                                                                     os.path.join(project_path,
+                                                                                 (abspath(
+                                                                                     join_path(project_path,
                                                                                                   sample))),
-                                                                                 (os.path.abspath(
-                                                                                     os.path.join(project_path, sample,
+                                                                                 (abspath(
+                                                                                     join_path(project_path, sample,
                                                                                                   'accepted_hits.sorted.bam'))))]
 
     # htseq-count doesn't work well with positional sorted bam files. Switch to featureCounts from subread package
     # if any(job for job in jobs if job in ['htseq-count', 'edgeR', 'DESeq']):
     #     logger.info('Using htseq options: {}'.format(defaults['htseq_options']))
     #     jobstr += ['echo "htseq"\nhtseq-count {} -f bam -r pos {} {} -o {} > {}'.format(defaults['htseq_options'],
-    #                                                                              (os.path.abspath(
-    #                                                                                  os.path.join(project_path, sample,
+    #                                                                              (abspath(
+    #                                                                                  join_path(project_path, sample,
     #                                                                                               'accepted_hits.sorted.bam'))),
     #                                                                              ((ref['gff_genome']) if ref.get(
     #                                                                                  'gff_genome') else ''),
-    #                                                                              (os.path.abspath(
-    #                                                                                  os.path.join(project_path, sample,
+    #                                                                              (abspath(
+    #                                                                                  join_path(project_path, sample,
     #                                                                                               'htseq_counts.sam'))),
-    #                                                                              (os.path.abspath(
-    #                                                                                  os.path.join(project_path, sample,
+    #                                                                              (abspath(
+    #                                                                                  join_path(project_path, sample,
     #                                                                                               'htseq_counts.out'))))]
 
     # it turnsout featureCounts does a name based sorting before operating. therefore this might be just as inefficient.
@@ -198,10 +200,10 @@ samtools sort -@ PPN - {}'''.format(defaults['hisat2_options'],
         jobstr += ['echo "featureCounts"\nfeatureCounts {} -a {} -o {} {}'.format(defaults['featureCounts_options'],
                                                                                         ((ref['gff_genome']) if ref.get(
                                                                                             'gff_genome') else ''),
-                                                                                        (os.path.abspath(os.path.join(project_path,
+                                                                                        (abspath(join_path(project_path,
                                                                                                                       sample,
                                                                                                                       'featureCounts_{}.out'.format(sample)))),
-                                                                                        (os.path.abspath(os.path.join(project_path,
+                                                                                        (abspath(join_path(project_path,
                                                                                                                       sample,
                                                                                                                       'accepted_hits.sorted.bam'))))]
 
@@ -215,7 +217,7 @@ def collect_counts_job(project_path, output, mapjobIDs, defaults, ppn='1', wallt
                    .replace('PROJECT', defaults['project'])
                    .replace('DEPEND', (
         'afterok:{}'.format(':'.join([mapjob for mapjob in mapjobIDs])) if mapjobIDs != [''] else ''))
-                   .replace('JOB_OUTPUTS', os.path.abspath(os.path.join(project_path, 'job_outputs')))
+                   .replace('JOB_OUTPUTS', abspath(join_path(project_path, 'job_outputs')))
                    .replace('EMAILADDRESS', defaults['email'])]
 
     # Pass all environmental variables to the job - this should take care of the virtual environment issue
@@ -223,18 +225,45 @@ def collect_counts_job(project_path, output, mapjobIDs, defaults, ppn='1', wallt
     jobstr += ['#PBS -V']
 
     # this is for htseq-count, which won't be used. For now, featureCounts will be used.
-    # jobstr += ['python {}/htseq_count_collector.py -p {} -g {} -o {} '.format(os.path.abspath(os.path.join(iLoop_RNAseq_pipeline.__path__[0], 'scripts')),
-    #                                                                           os.path.abspath(project_path),
-    #                                                                           os.path.abspath(os.path.join(os.path.join(project_path, 'groups.json'))),
+    # jobstr += ['python {}/htseq_count_collector.py -p {} -g {} -o {} '.format(abspath(join_path(iLoop_RNAseq_pipeline.__path__[0], 'scripts')),
+    #                                                                           abspath(project_path),
+    #                                                                           abspath(join_path(join_path(project_path, 'groups.json'))),
     #                                                                           output)]
 
     # line for featureCounts
-    jobstr += ['python {}/featureCounts_collector.py -p {} -g {} -o {} '.format(os.path.abspath(os.path.join(iLoop_RNAseq_pipeline.__path__[0], 'scripts')),
-                                                                                os.path.abspath(project_path),
-                                                                                os.path.abspath(os.path.join(os.path.join(project_path, 'groups.json'))),
+    jobstr += ['python {}/featureCounts_collector.py -p {} -g {} -o {} '.format(abspath(join_path(iLoop_RNAseq_pipeline.__path__[0], 'scripts')),
+                                                                                abspath(project_path),
+                                                                                abspath(join_path(join_path(project_path, 'inputs', 'groups.json'))),
                                                                                 output)]
 
     return '\n\n'.join(jobstr).replace('PPN', ppn)
+
+
+def edgeR_job(project_path, groups, output, collectjobID, defaults, ppn='1', walltime="12:00:00"):
+    '''Prepare inputs for edgeR and generate a job script'''
+
+    # Generate conditions input file
+    condf = open(abspath(join_path(project_path, 'inputs', 'conditions_Rready.csv')), 'w')
+    condf.writelines('Sample,Strain,Treatment\n')
+    condf.writelines(
+        [','.join([sample, 'strain', group + '\n']) for group, samples in groups.items() for sample in samples.keys()])
+    condf.close()
+
+    # jobstr = []
+    # jobstr += [job_header.replace('JOBNAME', 'edgeR')
+    #                .replace('WALLTIME', walltime)
+    #                .replace('PROJECT', defaults['project'])
+    #                .replace('DEPEND', 'afterok:{}'.format(collectjobID))
+    #                .replace('JOB_OUTPUTS', abspath(join_path(project_path, 'job_outputs')))
+    #                .replace('EMAILADDRESS', defaults['email'])]
+    #
+    # jobstr += []
+    #
+
+
+
+    # return '\n\n'.join(jobstr).replace('PPN', ppn)
+    return True
 
 
 def merge_job(project_path, mapjobIDs, ref, defaults, ppn='1', walltime='01:00:00'):
@@ -245,7 +274,7 @@ def merge_job(project_path, mapjobIDs, ref, defaults, ppn='1', walltime='01:00:0
                          .replace('PROJECT', defaults['project'])
                          .replace('DEPEND', (
         'afterok:{}'.format(':'.join([mapjob for mapjob in mapjobIDs])) if mapjobIDs != [''] else ''))
-                         .replace('JOB_OUTPUTS', os.path.abspath(os.path.join(project_path, 'job_outputs')))
+                         .replace('JOB_OUTPUTS', abspath(join_path(project_path, 'job_outputs')))
                          .replace('EMAILADDRESS', defaults['email'])]
 
     jobstr += ['''# Load modules needed by myapplication.x
@@ -255,9 +284,9 @@ module load ngs tools cufflinks/2.2.1 tophat/2.1.1 bowtie2/2.2.5''']
                                                                'gff_genome') else ''),
                                                            (('-s ' + ref['fasta_genome']) if ref.get(
                                                                'fasta_genome') else ''),
-                                                           (os.path.abspath(os.path.join(project_path, 'cmerge',
+                                                           (abspath(join_path(project_path, 'cmerge',
                                                                                          'merged_asm'))),
-                                                           (os.path.abspath(os.path.join(project_path, 'cmerge',
+                                                           (abspath(join_path(project_path, 'cmerge',
                                                                                          'assemblies.txt'))))]
 
     return '\n\n'.join(jobstr).replace('PPN', ppn)
@@ -270,7 +299,7 @@ def quant_jobs(project_path, sample, mergejob, ref, defaults, ppn='8', walltime=
                    .replace('WALLTIME', walltime)
                    .replace('PROJECT', defaults['project'])
                    .replace('DEPEND', 'afterok:{}'.format(mergejob))
-                   .replace('JOB_OUTPUTS', os.path.abspath(os.path.join(project_path, 'job_outputs')))
+                   .replace('JOB_OUTPUTS', abspath(join_path(project_path, 'job_outputs')))
                    .replace('EMAILADDRESS', defaults['email'])]
 
     # make this job depend on successful completion of previous jobs: merge_job
@@ -284,13 +313,13 @@ module load ngs tools cufflinks/2.2.1 tophat/2.1.1 bowtie2/2.2.5''']
 
     jobstr += ['cuffquant {} -p PPN {} -o {} {} {} {} '.format(defaults['cuffquant_options'],
                                                                ('-M ' + ref['gff_mask']) if ref.get('gff_mask') else '',
-                                                               (os.path.abspath(os.path.join(project_path, sample))),
+                                                               (abspath(join_path(project_path, sample))),
                                                                ('-b ' + ref['fasta_genome']) if ref.get(
                                                                    'fasta_genome') else '',
-                                                               (os.path.abspath(
-                                                                   os.path.join(project_path, 'cmerge', 'merged_asm',
+                                                               (abspath(
+                                                                   join_path(project_path, 'cmerge', 'merged_asm',
                                                                                 'merged.gtf'))),
-                                                               (os.path.abspath(os.path.join(project_path, sample,
+                                                               (abspath(join_path(project_path, sample,
                                                                                              'accepted_hits.sorted.bam'))))]
 
     return '\n\n'.join(jobstr).replace('PPN', ppn)
@@ -304,7 +333,7 @@ def diff_job(project_path, groups, quantjobsIDs, ppn='8', walltime='24:00:00', r
                    .replace('PROJECT', defaults['project'])
                    .replace('DEPEND', (
         'afterok:{}'.format(':'.join([qjob for qjob in quantjobsIDs])) if quantjobsIDs != [''] else ''))
-                   .replace('JOB_OUTPUTS', os.path.abspath(os.path.join(project_path, 'job_outputs')))
+                   .replace('JOB_OUTPUTS', abspath(join_path(project_path, 'job_outputs')))
                    .replace('EMAILADDRESS', defaults['email'])]
 
     # make this job depend on successful completion of previous jobs: mapandlink_jobs
@@ -314,23 +343,23 @@ def diff_job(project_path, groups, quantjobsIDs, ppn='8', walltime='24:00:00', r
 module load ngs tools cufflinks/2.2.1 tophat/2.1.1 bowtie2/2.2.5''']
 
     jobstr += ['cuffdiff {} -o {} {} -p PPN {} -L {} -u {} -o {} {}'.format(defaults['cuffdiff_options'],
-                                                                            os.path.abspath(
-                                                                                os.path.join(project_path, 'cdiff',
+                                                                            abspath(
+                                                                                join_path(project_path, 'cdiff',
                                                                                              'diff_out')),
                                                                             (('-b ' + ref['fasta_genome']) if ref['fasta_genome'] != '' else ''),
                                                                             (('-M ' + ref['gff_mask']) if ref['gff_mask'] != '' else ''),
                                                                             (','.join(
                                                                                 [group_name for group_name, group
                                                                                  in groups.items()])),
-                                                                            (os.path.abspath(
-                                                                                os.path.join(project_path, 'cmerge',
+                                                                            (abspath(
+                                                                                join_path(project_path, 'cmerge',
                                                                                              'merged_asm',
                                                                                              'merged.gtf'))),
-                                                                            (os.path.abspath(
-                                                                                os.path.join(project_path, 'cdiff',
+                                                                            (abspath(
+                                                                                join_path(project_path, 'cdiff',
                                                                                              'diff_out'))),
                                                                             (' '.join(
-                                                                                [','.join([os.path.abspath(os.path.join(
+                                                                                [','.join([abspath(join_path(
                                                                                     project_path, sample,
                                                                                     'abundances.cxb')) for
                                                                                            sample, reads in
@@ -342,7 +371,7 @@ module load ngs tools cufflinks/2.2.1 tophat/2.1.1 bowtie2/2.2.5''']
 
 
 def job_submitter(js, path, name):
-    jfn = os.path.join(path, name)
+    jfn = join_path(path, name)
     jf = open(jfn, 'w')
     jf.write(js)
     jf.close()
@@ -354,26 +383,26 @@ def job_submitter(js, path, name):
 
 def job_organizer(project_path, groups, ref, defaults, map_to_mask, ppn='8', readtype='raw', jobs=None):
     try:
-        job_files_path = os.path.abspath(os.path.join(project_path, 'job_files'))
+        job_files_path = abspath(join_path(project_path, 'job_files'))
         os.mkdir(job_files_path)
     except FileExistsError:
         logger.warning('Folder for job files exists. Previously generated job files will be overwritten.')
 
     try:
-        os.mkdir(os.path.join(project_path, 'job_outputs'))
+        os.mkdir(join_path(project_path, 'job_outputs'))
     except FileExistsError:
         logger.warning('Folder for job outputs exists.')
 
     try:
-        results_path = os.path.abspath(os.path.join(project_path, 'results'))
-        os.mkdir(os.path.join(results_path))
+        results_path = abspath(join_path(project_path, 'results'))
+        os.mkdir(join_path(results_path))
     except FileExistsError:
         logger.warning('Folder for results exists.')
 
     # do quality checks
     if ('fastqc' in jobs) or (jobs == []):
         try:
-            output_path = os.path.abspath(os.path.join(project_path, 'reads', 'QC_output', readtype))
+            output_path = abspath(join_path(project_path, 'reads', 'QC_output', readtype))
             if not check_fastqc(groups=groups, output_path=output_path):
                 js = fastqc_job(project_path=project_path, groups=groups, output_path=output_path, defaults=defaults)
                 qcjobID = job_submitter(js, job_files_path, 'job_fastqc.sh')
@@ -428,7 +457,7 @@ def job_organizer(project_path, groups, ref, defaults, map_to_mask, ppn='8', rea
     # collect htseq counts - Ignore this since featureCounts is prefered now
     # if any(job for job in jobs if job in ['htseq-count', 'edgeR', 'DESeq', 'htseq-count-collect']) or (jobs == []):
     #     try:
-    #         js = collect_counts_job(project_path=project_path, output=os.path.abspath(os.path.join(results_path, 'htseq_counts_collected')), mapjobIDs=mapjobIDs, defaults=defaults)
+    #         js = collect_counts_job(project_path=project_path, output=abspath(join_path(results_path, 'htseq_counts_collected')), mapjobIDs=mapjobIDs, defaults=defaults)
     #         collectjobID = job_submitter(js=js, path=job_files_path, name='job_htseq_count_collector.sh')
     #     except Exception as ex:
     #         logger.error(
@@ -438,7 +467,7 @@ def job_organizer(project_path, groups, ref, defaults, map_to_mask, ppn='8', rea
 
     if any(job for job in jobs if job in ['featureCounts', 'edgeR', 'DESeq', 'featureCounts-collect']) or (jobs == []):
         try:
-            js = collect_counts_job(project_path=project_path, output=os.path.abspath(os.path.join(results_path, 'featureCounts_collected')), mapjobIDs=mapjobIDs, defaults=defaults)
+            js = collect_counts_job(project_path=project_path, output=abspath(join_path(results_path, 'featureCounts_collected')), mapjobIDs=mapjobIDs, defaults=defaults)
             collectjobID = job_submitter(js=js, path=job_files_path, name='job_featureCounts_collector.sh')
         except Exception as ex:
             logger.error(
@@ -450,13 +479,13 @@ def job_organizer(project_path, groups, ref, defaults, map_to_mask, ppn='8', rea
     # generate and submit merge job
     if ('cuffmerge' in jobs) or (jobs == []):
         try:
-            os.mkdir(os.path.join(project_path, 'cmerge'))
+            os.mkdir(join_path(project_path, 'cmerge'))
         except FileExistsError:
             logger.warning('Folder for cuffmerge exists. Previously generated files will be overwritten.')
 
         try:
-            af = open(os.path.join(project_path, 'cmerge', 'assemblies.txt'), 'w')
-            af.write('\n'.join([os.path.abspath(os.path.join(project_path, replicate, 'transcripts.gtf')) for group in groups.values()
+            af = open(join_path(project_path, 'cmerge', 'assemblies.txt'), 'w')
+            af.write('\n'.join([abspath(join_path(project_path, replicate, 'transcripts.gtf')) for group in groups.values()
                                 for replicate in group.keys()]))
             af.close()
             logger.info('"Assemblies.txt" is generated under "cmerge".')
@@ -497,7 +526,7 @@ def job_organizer(project_path, groups, ref, defaults, map_to_mask, ppn='8', rea
     # generate and submit cuffdiff job
     if ('cuffdiff' in jobs) or (jobs == []):
         try:
-            os.mkdir(os.path.join(project_path, 'cdiff'))
+            os.mkdir(join_path(project_path, 'cdiff'))
         except FileExistsError:
             logger.warning('Folder for cuffdiff exists. Previously generated files will be overwritten.')
 

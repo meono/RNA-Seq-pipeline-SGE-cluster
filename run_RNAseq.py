@@ -38,7 +38,7 @@ def main():
     defaults = ip.get_defaults()
     ref = ip.get_reference(strain_code=args.strain_code, project_path=project_path)
     reads, project_path = ip.set_project(project_path=project_path, read_path=args.read_path)
-    groups = mm.find_groups(reads)
+    groups = mm.find_groups(project_path=project_path, reads=reads)
     essentials = [defaults, ref, reads, project_path, groups]
     if not any(ess for ess in essentials if not ess):
         subs = mq.job_organizer(project_path=project_path,
