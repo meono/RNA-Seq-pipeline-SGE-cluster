@@ -257,7 +257,7 @@ def edgeR_job(project_path, groups, output, collectjobID, defaults, ppn='1', wal
                    .replace('JOB_OUTPUTS', abspath(join_path(project_path, 'job_outputs')))
                    .replace('EMAILADDRESS', defaults['email'])]
 
-    jobstr += ['Rscript {}/edge_Rscript.r -p {}, -c {} -s {} -o {}'.format(abspath(join_path(iLoop_RNAseq_pipeline.__path__, 'scripts')),
+    jobstr += ['Rscript {}/edge_Rscript.r -p {}, -c {} -s {} -o {}'.format(abspath(join_path(iLoop_RNAseq_pipeline.__path__[0], 'scripts')),
                                                                            project_path,
                                                                            abspath(join_path(project_path,
                                                                                              'results',
