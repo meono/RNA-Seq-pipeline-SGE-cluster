@@ -257,7 +257,8 @@ def edgeR_job(project_path, groups, output, collectjobID, defaults, ppn='1', wal
                    .replace('JOB_OUTPUTS', abspath(join_path(project_path, 'job_outputs')))
                    .replace('EMAILADDRESS', defaults['email'])]
 
-    jobstr += ['Rscript {}/edge_Rscript.r -p {}, -c {} -s {} -o {}'.format(project_path,
+    jobstr += ['Rscript {}/edge_Rscript.r -p {}, -c {} -s {} -o {}'.format(abspath(join_path(iLoop_RNAseq_pipeline.__path__, 'scripts')),
+                                                                           project_path,
                                                                            abspath(join_path(project_path,
                                                                                              'results',
                                                                                              'featureCounts_collected.csv')),
@@ -481,6 +482,15 @@ def job_organizer(project_path, groups, ref, defaults, map_to_mask, ppn='8', rea
                     type(ex).__name__, ex.args))
             return False
 
+    if 'edgeR' in jobs:
+        try:
+            js = edgeR_job(project_path=project_path, groups=groups, output=results_path, collectjobID=collectjobID, defaults=defaults)
+            edgeRjobID= job_submitter(js=js, path=job_files_path, name='job_edgeR.sh')
+        except Exception as ex:
+            logger.error(
+                'Problem with edgeR. RNAseq analysis is stopped.\nAn exception of type {} occured. Arguments:\n{}'.format(
+                    type(ex).__name__, ex.args))
+            return False
 
     # generate and submit merge job
     if ('cuffmerge' in jobs) or (jobs == []):
