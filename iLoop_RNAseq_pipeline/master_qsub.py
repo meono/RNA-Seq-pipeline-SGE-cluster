@@ -249,21 +249,27 @@ def edgeR_job(project_path, groups, output, collectjobID, defaults, ppn='1', wal
         [','.join([sample, 'strain', group + '\n']) for group, samples in groups.items() for sample in samples.keys()])
     condf.close()
 
-    # jobstr = []
-    # jobstr += [job_header.replace('JOBNAME', 'edgeR')
-    #                .replace('WALLTIME', walltime)
-    #                .replace('PROJECT', defaults['project'])
-    #                .replace('DEPEND', 'afterok:{}'.format(collectjobID))
-    #                .replace('JOB_OUTPUTS', abspath(join_path(project_path, 'job_outputs')))
-    #                .replace('EMAILADDRESS', defaults['email'])]
-    #
-    # jobstr += []
-    #
+    jobstr = []
+    jobstr += [job_header.replace('JOBNAME', 'edgeR')
+                   .replace('WALLTIME', walltime)
+                   .replace('PROJECT', defaults['project'])
+                   .replace('DEPEND', 'afterok:{}'.format(collectjobID))
+                   .replace('JOB_OUTPUTS', abspath(join_path(project_path, 'job_outputs')))
+                   .replace('EMAILADDRESS', defaults['email'])]
+
+    jobstr += ['Rscript {}/edge_Rscript.r -p {}, -c {} -s {} -o {}'.format(project_path,
+                                                                           abspath(join_path(project_path,
+                                                                                             'results',
+                                                                                             'featureCounts_collected.csv')),
+                                                                           abspath(join_path(project_path,
+                                                                                             'inputs',
+                                                                                             'conditions_Rready.csv')),
+                                                                           output)]
 
 
 
-    # return '\n\n'.join(jobstr).replace('PPN', ppn)
-    return True
+
+    return '\n\n'.join(jobstr).replace('PPN', ppn)
 
 
 def merge_job(project_path, mapjobIDs, ref, defaults, ppn='1', walltime='01:00:00'):

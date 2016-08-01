@@ -20,7 +20,7 @@ option_list = list(
                                type="character",
                                default=NULL,
                                help="File describing strains and/or conditions.",
-                               metavar="character")
+                               metavar="character"),
                    make_option(c("-o", "--output"),
                                type="character",
                                default=NULL,
