@@ -239,7 +239,7 @@ def collect_counts_job(project_path, output, mapjobIDs, defaults, ppn='1', wallt
     return '\n\n'.join(jobstr).replace('PPN', ppn)
 
 
-def edgeR_job(project_path, groups, output, collectjobID, defaults, ppn='1', walltime="12:00:00"):
+def edgeR_job(project_path, groups, output, collectjobID, defaults, ppn='1', walltime="12:00:00", filter_threshold=0.5):
     '''Prepare inputs for edgeR and generate a job script'''
 
     # Generate conditions input file
@@ -257,7 +257,7 @@ def edgeR_job(project_path, groups, output, collectjobID, defaults, ppn='1', wal
                    .replace('JOB_OUTPUTS', abspath(join_path(project_path, 'job_outputs')))
                    .replace('EMAILADDRESS', defaults['email'])]
 
-    jobstr += ['Rscript {}/edge_Rscript.r -p {}, -c {} -s {} -o {}'.format(abspath(join_path(iLoop_RNAseq_pipeline.__path__[0], 'scripts')),
+    jobstr += ['Rscript {}/edge_Rscript.r -p {}, -c {} -s {} -o {} -f {}'.format(abspath(join_path(iLoop_RNAseq_pipeline.__path__[0], 'scripts')),
                                                                            project_path,
                                                                            abspath(join_path(project_path,
                                                                                              'results',
@@ -265,7 +265,8 @@ def edgeR_job(project_path, groups, output, collectjobID, defaults, ppn='1', wal
                                                                            abspath(join_path(project_path,
                                                                                              'inputs',
                                                                                              'conditions_Rready.csv')),
-                                                                           output)]
+                                                                           output,
+                                                                           str(filter_threshold))]
 
 
 
