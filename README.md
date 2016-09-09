@@ -34,4 +34,4 @@ A local installation of featureCounts since the module version is old.
 R packages:
 - edgeR
 - DESeq
-- optparse
+- optparse (>=1.4.0 due to hyphen issues)
