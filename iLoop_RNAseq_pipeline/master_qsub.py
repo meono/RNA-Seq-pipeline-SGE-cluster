@@ -386,7 +386,7 @@ def job_submitter(js, path, name):
     p = subprocess.Popen(['qsub', jfn], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     p.wait()
     out, err = p.communicate()
-    os.system('sleep 0.5')
+    os.system('sleep 1')
     return out.strip().decode(sys.getdefaultencoding())
 
 def job_organizer(project_path, groups, ref, defaults, map_to_mask, ppn='8', readtype='raw', jobs=None):
