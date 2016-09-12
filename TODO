@@ -6,3 +6,7 @@
 - get value for project number in job scripts
 - make hisat indexes for all the available genomes
 - define a quality score threshold and use it to block or continue RNAseq (in master_qsub)
+
+- Defining replicates of a sample fails under specific circumstances:
+    -- If the names are too simlar: MG1655-a, b, c and MG1655-1, 2, 3 would be grouped under the same sample with 6 replicates.
+    -- If the only difference in groups is the sample ID: reads from MG1655-a_S11, MG1655-a_S12, MG1655-a_S13 would be considered under one replicate.

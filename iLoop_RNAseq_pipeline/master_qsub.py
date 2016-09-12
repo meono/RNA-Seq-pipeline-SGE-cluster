@@ -306,7 +306,7 @@ def quant_jobs(project_path, sample, mergejob, ref, defaults, ppn='8', walltime=
     jobstr += [job_header.replace('JOBNAME', '_'.join([sample] + ['cuffquant']))
                    .replace('WALLTIME', walltime)
                    .replace('PROJECT', defaults['project'])
-                   .replace('DEPEND', 'afterok:{}'.format(mergejob))
+                   .replace('DEPEND', ('afterok:{}'.format(mergejob) if mergejob != '' else ''))
                    .replace('JOB_OUTPUTS', abspath(join_path(project_path, 'job_outputs')))
                    .replace('EMAILADDRESS', defaults['email'])]
 
