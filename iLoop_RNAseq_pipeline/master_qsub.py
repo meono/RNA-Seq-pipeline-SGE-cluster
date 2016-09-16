@@ -377,6 +377,22 @@ module load ngs tools cufflinks/2.2.1 tophat/2.1.1 bowtie2/2.2.5''']
 
     return '\n\n'.join(jobstr).replace('PPN', ppn)
 
+def crb_job(project_path, output, diffjobID=None, ppn='1', walltime="1:00:00", defaults=None):
+    '''Generate a job script for cummeRbund.'''
+
+    # Generate conditions input file
+    jobstr = []
+    jobstr += [job_header.replace('JOBNAME', 'cummeRbund')
+                   .replace('WALLTIME', walltime)
+                   .replace('PROJECT', defaults['project'])
+                   .replace('DEPEND', ('afterok:{}'.format(diffjobID) if diffjobID != '' else ''))
+                   .replace('JOB_OUTPUTS', abspath(join_path(project_path, 'job_outputs')))
+                   .replace('EMAILADDRESS', defaults['email'])]
+
+    jobstr += ['Rscript {}/cummeRbund.r -p {} -o {}'.format(abspath(join_path(iLoop_RNAseq_pipeline.__path__[0], 'scripts')),
+                                                            project_path,
+                                                            output)]
+    return '\n\n'.join(jobstr).replace('PPN', ppn)
 
 def job_submitter(js, path, name):
     jfn = join_path(path, name)
@@ -557,7 +573,26 @@ def job_organizer(project_path, groups, ref, defaults, map_to_mask, ppn='8', rea
                 'Problem with Cuffdiff. RNAseq analysis is stopped.\nAn exception of type {} occured. Arguments:\n{}'.format(
                     type(ex).__name__, ex.args))
             return False
+    else:
+        diffjobID = ''
 
+    # generate and submit cummeRbund job
+    if ('cummeRbund' in jobs) or ('cuffdiff' in jobs) or (jobs == []):
+        try:
+            js = crb_job(project_path=project_path,
+                         output=results_path,
+                         diffjobID=diffjobID ,
+                         ppn='1',
+                         walltime='01:00:00',
+                         defaults=defaults)
+            crbjobID = job_submitter(js, job_files_path, 'job_cummeRbund.sh')
+        except Exception as ex:
+            logger.error(
+                'Problem with Cuffdiff. RNAseq analysis is stopped.\nAn exception of type {} occured. Arguments:\n{}'.format(
+                    type(ex).__name__, ex.args))
+            return False
+    else:
+        crbjobID = ''
 
     logger.info('All jobs are completed.')
     return True
