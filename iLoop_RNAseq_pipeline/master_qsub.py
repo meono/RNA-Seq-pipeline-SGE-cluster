@@ -128,8 +128,8 @@ export PATH''']
         jobstr += ['''echo "hisat2"
     hisat2 {} -p PPN -x {} {} {} -S {} 2>{} '''.format(defaults['hisat2_options'],
                                         (ref['hisat2_mask_indexes']),
-                                        ('-1' + ','.join(R1reads)),
-                                        ('-2' + ','.join(R2reads)),
+                                        ('-1 ' + ','.join(R1reads)),
+                                        ('-2 ' + ','.join(R2reads)),
                                         (abspath(join_path(project_path, 'map_to_mask', sample, 'accepted_hits.sam'))),
                                         (abspath(join_path(project_path, 'map_to_mask', sample, 'align_summary.txt'))))]
     elif (ref.get('hisat2_genomic_indexes')) and ('hisat2' in jobs):
@@ -139,8 +139,8 @@ hisat2 {} -p PPN -x {} {} {} 2>{} | \
 samtools view -@ PPN -hbu - | \
 samtools sort -@ PPN - {}'''.format(defaults['hisat2_options'],
                                     ref['hisat2_genomic_indexes'],
-                                    ('-1' + ','.join(R1reads)),
-                                    ('-2' + ','.join(R2reads)),
+                                    ('-1 ' + ','.join(R1reads)),
+                                    ('-2 ' + ','.join(R2reads)),
                                     (abspath(join_path(project_path, sample, 'align_summary.txt'))),
                                     (abspath(join_path(project_path, sample, 'accepted_hits.sorted'))))]
 
@@ -228,7 +228,7 @@ def collect_stats_job(project_path, output, mapjobIDs, defaults, ppn='1', wallti
                                                                                   abspath(project_path),
                                                                                   abspath(join_path(project_path, 'inputs', 'groups.json')),
                                                                                   output,
-                                                                                  ('-m' if not map_to_mask else ''))]
+                                                                                  ('-m' if map_to_mask else ''))]
 
     return '\n\n'.join(jobstr).replace('PPN', ppn)
 
@@ -466,7 +466,7 @@ def job_organizer(project_path, groups, ref, defaults, map_to_mask, ppn='8', rea
 
     # generate and submit map and link jobs
     mljobs = ['hisat2', 'stringtie', 'cufflinks', 'htseq-count', 'featureCounts']
-    if (map_to_mask) and (any(job for job in jobs if job in mljobs)) or (jobs == []):
+    if map_to_mask:
         try:
             maskjobIDs = []
             for group_name, group in groups.items():

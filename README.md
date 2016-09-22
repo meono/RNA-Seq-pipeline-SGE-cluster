@@ -12,7 +12,7 @@ Basic functionality is implemented.
 
 4. Quantify job: Cuffquant run. Depends on successful completion of step 3.
 
-5. DGE job: CUffdiff run. Depends on successful completion of step 4.
+5. DGE job: Cuffdiff run. Depends on successful completion of step 4.
 
 
 ## Operational requirements:
