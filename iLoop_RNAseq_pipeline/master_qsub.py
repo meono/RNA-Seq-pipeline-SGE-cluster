@@ -95,7 +95,7 @@ def mapandlink_jobs(project_path, sample, reads, defaults, ref, jobs, ppn='8', w
     mljobs = ['hisat2', 'stringtie', 'cufflinks', 'htseq-count', 'featureCounts']
     if map_to_mask:
         jobs = ['hisat2_to_mask']
-    elif (jobs == []) and (map_to_mask == False):
+    elif (jobs == []) and (map_to_mask is False):
         jobs = mljobs
 
     jobstr = []

@@ -22,6 +22,7 @@ if args.map_to_mask:
     pp = os.path.abspath(os.path.join(args.project_path, 'map_to_mask')) # pp: path prefix
 else:
     pp = os.path.abspath(args.project_path) # pp: path prefix
+
 for sample in [sample for group in groups.values() for sample in group.keys()]:
     with open(os.path.join(pp, sample, 'align_summary.txt'), 'r') as f:
         for line in f.readlines():
@@ -54,42 +55,42 @@ for sample in [sample for group in groups.values() for sample in group.keys()]:
                     side = False
 
                 if line.startswith('          Input     :') and side != False:
-                    df.loc[i, side + '_reads'] = line.split()[2]
+                    df.loc[sample, side + '_reads'] = line.split()[2]
                 elif line.startswith('           Mapped   :') and side != False:
-                    df.loc[i, 'Mapped_' + side + '_reads'] = line.split()[2]
-                    df.loc[i, 'Percent_mapped_' + side + '_reads'] = line.split('(')[1].split('%')[0]
+                    df.loc[sample, 'Mapped_' + side + '_reads'] = line.split()[2]
+                    df.loc[sample, 'Percent_mapped_' + side + '_reads'] = line.split('(')[1].split('%')[0]
                 elif line.startswith('            of these:') and side != False:
-                    df.loc[i, 'Multiple_alignments_' + side + '_reads'] = line.split()[2]
-                    df.loc[i, 'Percent_multiple_alignments_' + side + '_reads'] = line.split('(')[1].split('%')[0]
-                elif side == False and line.startswith('Aligned pairs:'):
-                    df.loc[i, 'Aligned_pairs'] = line.split()[2]
-                elif side == False and line.startswith('     of these:'):
-                    df.loc[i, 'Multiple_alignments_pairs'] = line.split()[2]
-                    df.loc[i, 'Percent_multiple_alignments_pairs'] = line.split('(')[1].split('%')[0]
-                elif side == False and line.endswith('concordant pair alignment rate.\n'):
-                    df.loc[i, 'Concordant_pair_alignment_rate'] = line.split('%')[0]
+                    df.loc[sample, 'Multiple_alignments_' + side + '_reads'] = line.split()[2]
+                    df.loc[sample, 'Percent_multiple_alignments_' + side + '_reads'] = line.split('(')[1].split('%')[0]
+                elif side is False and line.startswith('Aligned pairs:'):
+                    df.loc[sample, 'Aligned_pairs'] = line.split()[2]
+                elif side is False and line.startswith('     of these:'):
+                    df.loc[sample, 'Multiple_alignments_pairs'] = line.split()[2]
+                    df.loc[sample, 'Percent_multiple_alignments_pairs'] = line.split('(')[1].split('%')[0]
+                elif side is False and line.endswith('concordant pair alignment rate.\n'):
+                    df.loc[sample, 'Concordant_pair_alignment_rate'] = line.split('%')[0]
 
             elif sum_type == 'hisat2':
                 if line.endswith('reads; of these:\n'):
-                    df.loc[i, 'Reads'] = line.split()[0]
+                    df.loc[sample, 'Reads'] = line.split()[0]
                 elif line.endswith('were paired; of these:\n'):
-                    df.loc[i, 'Paired_reads'] = line.split()[0]
+                    df.loc[sample, 'Paired_reads'] = line.split()[0]
                 elif line.endswith('aligned concordantly 0 times\n'):
-                    df.loc[i, 'Pairs_not_concordantly_aligned'] = line.split()[0]
+                    df.loc[sample, 'Pairs_not_concordantly_aligned'] = line.split()[0]
                 elif line.endswith('aligned concordantly exactly 1 time\n'):
-                    df.loc[i, 'Pairs_concordantly_aligned_once'] = line.split()[0]
+                    df.loc[sample, 'Pairs_concordantly_aligned_once'] = line.split()[0]
                 elif line.endswith('aligned concordantly >1 times\n'):
-                    df.loc[i, 'Pairs_concordantly_aligned_multiple'] = line.split()[0]
+                    df.loc[sample, 'Pairs_concordantly_aligned_multiple'] = line.split()[0]
                 elif line.endswith('aligned discordantly 1 time\n'):
-                    df.loc[i, 'Pairs_discordantly_aligned_once'] = line.split()[0]
+                    df.loc[sample, 'Pairs_discordantly_aligned_once'] = line.split()[0]
                 elif line.endswith('aligned 0 times\n'):
-                    df.loc[i, 'Remaining_singles_not_aligned'] = line.split()[0]
+                    df.loc[sample, 'Remaining_singles_not_aligned'] = line.split()[0]
                 elif line.endswith('aligned exactly 1 time\n'):
-                    df.loc[i, 'Remaining_singles_aligned_once'] = line.split()[0]
+                    df.loc[sample, 'Remaining_singles_aligned_once'] = line.split()[0]
                 elif line.endswith('aligned >1 times\n'):
-                    df.loc[i, 'Remaining_singles_aligned_multiple'] = line.split()[0]
+                    df.loc[sample, 'Remaining_singles_aligned_multiple'] = line.split()[0]
                 elif line.endswith('overall alignment rate\n'):
-                    df.loc[i, 'Overall_alignment_percentage'] = line.split('%')[0]
+                    df.loc[sample, 'Overall_alignment_percentage'] = line.split('%')[0]
 
 
-df.to_csv('align_summaries.csv', sep='	')
+df.to_csv(args.output, sep='	')
