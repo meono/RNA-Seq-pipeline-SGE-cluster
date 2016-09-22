@@ -12,7 +12,7 @@ parser = argparse.ArgumentParser(description='This script will collect the count
 
 parser.add_argument('-p', '--project-path', help='Path to project folder')
 parser.add_argument('-g', '--groups-json', help='json file for experiment setup with full path.')
-parser.add_argument('-o', '--output', help='Path and prefix of output file. e.g.: ./htseq/collected_counts')
+parser.add_argument('-o', '--output', help='Path and prefix of output file. e.g.: ./featureCounts/collected_counts')
 args = parser.parse_args()
 
 groups = json.load(open(args.groups_json, 'r'))

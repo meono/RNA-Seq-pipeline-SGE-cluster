@@ -210,6 +210,29 @@ samtools sort -@ PPN - {}'''.format(defaults['hisat2_options'],
     return '\n\n'.join(jobstr).replace('PPN', ppn)
 
 
+def collect_stats_job(project_path, output, mapjobIDs, defaults, ppn='1', walltime="00:05:00", map_to_mask=False):
+    jobstr = []
+    jobstr += [job_header.replace('JOBNAME', ('collect_stats' if not map_to_mask else 'collect_stats_mask'))
+                   .replace('WALLTIME', walltime)
+                   .replace('PROJECT', defaults['project'])
+                   .replace('DEPEND', (
+        'afterok:{}'.format(':'.join([mapjob for mapjob in mapjobIDs])) if mapjobIDs != [''] else ''))
+                   .replace('JOB_OUTPUTS', abspath(join_path(project_path, 'job_outputs')))
+                   .replace('EMAILADDRESS', defaults['email'])]
+
+    # Pass all environmental variables to the job - this should take care of the virtual environment issue
+    # TODO: clear out virtual environment arguments if this works
+    jobstr += ['#PBS -V']
+
+    jobstr += ['python {}/collect_align_summaries.py -p {} -g {} -o {} {}'.format(abspath(join_path(iLoop_RNAseq_pipeline.__path__[0], 'scripts')),
+                                                                                  abspath(project_path),
+                                                                                  abspath(join_path(project_path, 'inputs', 'groups.json')),
+                                                                                  output,
+                                                                                  ('-m' if not map_to_mask else ''))]
+
+    return '\n\n'.join(jobstr).replace('PPN', ppn)
+
+
 def collect_counts_job(project_path, output, mapjobIDs, defaults, ppn='1', walltime="00:05:00"):
     jobstr = []
     jobstr += [job_header.replace('JOBNAME', 'collect_counts')
@@ -227,13 +250,13 @@ def collect_counts_job(project_path, output, mapjobIDs, defaults, ppn='1', wallt
     # this is for htseq-count, which won't be used. For now, featureCounts will be used.
     # jobstr += ['python {}/htseq_count_collector.py -p {} -g {} -o {} '.format(abspath(join_path(iLoop_RNAseq_pipeline.__path__[0], 'scripts')),
     #                                                                           abspath(project_path),
-    #                                                                           abspath(join_path(join_path(project_path, 'groups.json'))),
+    #                                                                           abspath(join_path(project_path, 'groups.json')),
     #                                                                           output)]
 
     # line for featureCounts
     jobstr += ['python {}/featureCounts_collector.py -p {} -g {} -o {} '.format(abspath(join_path(iLoop_RNAseq_pipeline.__path__[0], 'scripts')),
                                                                                 abspath(project_path),
-                                                                                abspath(join_path(join_path(project_path, 'inputs', 'groups.json'))),
+                                                                                abspath(join_path(project_path, 'inputs', 'groups.json')),
                                                                                 output)]
 
     return '\n\n'.join(jobstr).replace('PPN', ppn)
@@ -444,16 +467,19 @@ def job_organizer(project_path, groups, ref, defaults, map_to_mask, ppn='8', rea
     # generate and submit map and link jobs
     if map_to_mask:
         try:
+            maskjobIDs = []
             for group_name, group in groups.items():
                 for sample, reads in group.items():
                     js = mapandlink_jobs(project_path=project_path, sample=sample, reads=reads, ref=ref,
                                          defaults=defaults, ppn=ppn, jobs=jobs, map_to_mask=map_to_mask)
-                    job_submitter(js, job_files_path, 'job_{}_mapandlink_to_mask.sh'.format(sample))
+                    maskjobIDs.append(job_submitter(js, job_files_path, 'job_{}_mapandlink_to_mask.sh'.format(sample)))
         except Exception as ex:
             logger.error(
                 'Problem with map and link. RNAseq analysis is stopped.\nAn exception of type {} occured. Arguments:\n{}'.format(
                     type(ex).__name__, ex.args))
             return False
+    else:
+        maskjobIDs = ['']
     # TODO: a threshold for mapping to mask/genome can be used to decide whether to go forward or stop pipeline. At least generate a warning.
 
     mljobs = ['hisat2', 'stringtie', 'cufflinks', 'htseq-count', 'featureCounts']
@@ -478,6 +504,7 @@ def job_organizer(project_path, groups, ref, defaults, map_to_mask, ppn='8', rea
     else:
         mapjobIDs = ['']
 
+
     # collect htseq counts - Ignore this since featureCounts is prefered now
     # if any(job for job in jobs if job in ['htseq-count', 'edgeR', 'DESeq', 'htseq-count-collect']) or (jobs == []):
     #     try:
@@ -498,6 +525,22 @@ def job_organizer(project_path, groups, ref, defaults, map_to_mask, ppn='8', rea
                 'Problem with featureCounts collector. RNAseq analysis is stopped.\nAn exception of type {} occured. Arguments:\n{}'.format(
                     type(ex).__name__, ex.args))
             return False
+
+    if any(job for job in jobs if job in ['collect_stats', 'hisat2', 'stringtie', 'cufflinks']) or (jobs == []):
+        statjobID = []
+        try:
+            if map_to_mask:
+                js = collect_stats_job(project_path=project_path, output=abspath(join_path(results_path, 'align_summaries_mask.tsv')), mapjobIDs=maskjobIDs, defaults=defaults, map_to_mask=map_to_mask)
+                collectjobID.append(job_submitter(js=js, path=job_files_path, name='job_collect_stats_mask.sh'))
+            js = collect_stats_job(project_path=project_path, output=abspath(join_path(results_path, 'align_summaries.tsv')), mapjobIDs=maskjobIDs, defaults=defaults, map_to_mask=False)
+            statjobID.append(job_submitter(js=js, path=job_files_path, name='job_collect_stats.sh'))
+        except Exception as ex:
+            logger.error(
+                'Problem with collect stats script. RNAseq analysis is stopped.\nAn exception of type {} occured. Arguments:\n{}'.format(
+                    type(ex).__name__, ex.args))
+            return False
+    else:
+        statjobID = ['']
 
     if 'edgeR' in jobs:
         try:
