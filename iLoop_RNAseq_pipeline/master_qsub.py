@@ -606,7 +606,7 @@ def job_organizer(project_path, groups, ref, defaults, map_to_mask, ppn='8', rea
             js = diff_job(project_path=project_path, groups=groups, quantjobsIDs=quantjobsIDs, ppn=ppn,
                           walltime='24:00:00',
                           ref=ref, defaults=defaults)
-            diffjob = job_submitter(js, job_files_path, 'job_cuffdiff.sh')
+            diffjobID = job_submitter(js, job_files_path, 'job_cuffdiff.sh')
         except Exception as ex:
             logger.error(
                 'Problem with Cuffdiff. RNAseq analysis is stopped.\nAn exception of type {} occured. Arguments:\n{}'.format(
