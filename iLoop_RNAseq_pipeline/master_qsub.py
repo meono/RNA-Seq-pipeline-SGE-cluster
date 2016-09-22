@@ -466,7 +466,7 @@ def job_organizer(project_path, groups, ref, defaults, map_to_mask, ppn='8', rea
 
     # generate and submit map and link jobs
     mljobs = ['hisat2', 'stringtie', 'cufflinks', 'htseq-count', 'featureCounts']
-    if map_to_mask:
+    if (map_to_mask) and ((any(job for job in jobs if job in mljobs)) or (jobs == [])):
         try:
             maskjobIDs = []
             for group_name, group in groups.items():
