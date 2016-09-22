@@ -465,7 +465,8 @@ def job_organizer(project_path, groups, ref, defaults, map_to_mask, ppn='8', rea
     # TODO: Come up with a qc threshold to continue or terminate jobs. Use qcjobID from above.
 
     # generate and submit map and link jobs
-    if map_to_mask:
+    mljobs = ['hisat2', 'stringtie', 'cufflinks', 'htseq-count', 'featureCounts']
+    if (map_to_mask) and (any(job for job in jobs if job in mljobs)) or (jobs == []):
         try:
             maskjobIDs = []
             for group_name, group in groups.items():
@@ -496,11 +497,6 @@ def job_organizer(project_path, groups, ref, defaults, map_to_mask, ppn='8', rea
                 'Problem with map and link. RNAseq analysis is stopped.\nAn exception of type {} occured. Arguments:\n{}'.format(
                     type(ex).__name__, ex.args))
             return False
-
-        # TODO: this check should wait for the end of jobs. Ideally, should be included in their respective job files. Ignoring for now.
-        # if not check_mapandlink(groups, project_path):
-        #     return False
-
     else:
         mapjobIDs = ['']
 
@@ -526,12 +522,12 @@ def job_organizer(project_path, groups, ref, defaults, map_to_mask, ppn='8', rea
                     type(ex).__name__, ex.args))
             return False
 
-    if any(job for job in jobs if job in ['collect_stats', 'hisat2', 'stringtie', 'cufflinks']) or (jobs == []):
+    if any(job for job in jobs if job in ['collect_stats', 'hisat2', 'cufflinks']) or (jobs == []):
         statjobID = []
         try:
             if map_to_mask:
                 js = collect_stats_job(project_path=project_path, output=abspath(join_path(results_path, 'align_summaries_mask.tsv')), mapjobIDs=maskjobIDs, defaults=defaults, map_to_mask=map_to_mask)
-                collectjobID.append(job_submitter(js=js, path=job_files_path, name='job_collect_stats_mask.sh'))
+                statjobID.append(job_submitter(js=js, path=job_files_path, name='job_collect_stats_mask.sh'))
             js = collect_stats_job(project_path=project_path, output=abspath(join_path(results_path, 'align_summaries.tsv')), mapjobIDs=maskjobIDs, defaults=defaults, map_to_mask=False)
             statjobID.append(job_submitter(js=js, path=job_files_path, name='job_collect_stats.sh'))
         except Exception as ex:
