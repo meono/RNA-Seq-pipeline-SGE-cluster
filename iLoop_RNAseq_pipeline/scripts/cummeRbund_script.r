@@ -29,7 +29,7 @@ gtfFilePath=paste(opt$project_path, "cmerge", "merged_asm", "merged.gtf", sep="/
 outfile=paste(opt$output, "cummeRbund_output.pdf", sep="/")
 
 # read in Cufflinks output
-cuff <- readCufflinks(dir=refCuffdiff,gtfFile=gtfFilePath)
+cuff <- readCufflinks(dir=refCuffdiff, rebuild=TRUE)
 
 #Set pdf device
 pdf(file=outfile)

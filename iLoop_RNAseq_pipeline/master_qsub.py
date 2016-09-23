@@ -280,7 +280,7 @@ def edgeR_job(project_path, groups, output, collectjobID, defaults, ppn='1', wal
                    .replace('JOB_OUTPUTS', abspath(join_path(project_path, 'job_outputs')))
                    .replace('EMAILADDRESS', defaults['email'])]
 
-    jobstr += ['Rscript {}/edge_Rscript.r -p {}, -c {} -s {} -o {} -f {}'.format(abspath(join_path(iLoop_RNAseq_pipeline.__path__[0], 'scripts')),
+    jobstr += ['Rscript {}/edgeR_script.r -p {}, -c {} -s {} -o {} -f {}'.format(abspath(join_path(iLoop_RNAseq_pipeline.__path__[0], 'scripts')),
                                                                            project_path,
                                                                            abspath(join_path(project_path,
                                                                                              'results',
@@ -412,7 +412,7 @@ def crb_job(project_path, output, diffjobID=None, ppn='1', walltime="1:00:00", d
                    .replace('JOB_OUTPUTS', abspath(join_path(project_path, 'job_outputs')))
                    .replace('EMAILADDRESS', defaults['email'])]
 
-    jobstr += ['Rscript {}/cummeRbund.r -p {} -o {}'.format(abspath(join_path(iLoop_RNAseq_pipeline.__path__[0], 'scripts')),
+    jobstr += ['Rscript {}/cummeRbund_script.r -p {} -o {}'.format(abspath(join_path(iLoop_RNAseq_pipeline.__path__[0], 'scripts')),
                                                             project_path,
                                                             output)]
     return '\n\n'.join(jobstr).replace('PPN', ppn)
