@@ -528,7 +528,7 @@ def job_organizer(project_path, groups, ref, defaults, map_to_mask, ppn='8', rea
             if map_to_mask:
                 js = collect_stats_job(project_path=project_path, output=abspath(join_path(results_path, 'align_summaries_mask.tsv')), mapjobIDs=maskjobIDs, defaults=defaults, map_to_mask=map_to_mask)
                 statjobID.append(job_submitter(js=js, path=job_files_path, name='job_collect_stats_mask.sh'))
-            js = collect_stats_job(project_path=project_path, output=abspath(join_path(results_path, 'align_summaries.tsv')), mapjobIDs=maskjobIDs, defaults=defaults, map_to_mask=False)
+            js = collect_stats_job(project_path=project_path, output=abspath(join_path(results_path, 'align_summaries.tsv')), mapjobIDs=mapjobIDs, defaults=defaults, map_to_mask=False)
             statjobID.append(job_submitter(js=js, path=job_files_path, name='job_collect_stats.sh'))
         except Exception as ex:
             logger.error(
