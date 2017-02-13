@@ -91,7 +91,7 @@ module load ngs FastQC/0.11.2''']
     return '\n\n'.join(jobstr).replace('PPN', ppn)
 
 
-def mapandlink_jobs(project_path, sample, reads, defaults, ref, jobs, ppn='8', walltime='12:00:00', map_to_mask=False):
+def mapandlink_jobs(project_path, sample, reads, defaults, ref, jobs, ppn='8', walltime='24:00:00', map_to_mask=False):
     mljobs = ['hisat2', 'stringtie', 'cufflinks', 'htseq-count', 'featureCounts']
     if map_to_mask:
         jobs = ['hisat2_to_mask']
@@ -196,7 +196,7 @@ samtools sort -@ PPN - {}'''.format(defaults['hisat2_options'],
 
     # it turnsout featureCounts does a name based sorting before operating. therefore this might be just as inefficient.
     if any(job for job in jobs if job in ['featureCounts', 'edgeR', 'DESeq']):
-        logger.info('Using htseq options: {}'.format(defaults['htseq_options']))
+        logger.info('Using featureCounts options: {}'.format(defaults['featureCounts_options']))
         jobstr += ['echo "featureCounts"\nfeatureCounts {} -a {} -o {} {}'.format(defaults['featureCounts_options'],
                                                                                         ((ref['gff_genome']) if ref.get(
                                                                                             'gff_genome') else ''),
@@ -280,7 +280,7 @@ def edgeR_job(project_path, groups, output, collectjobID, defaults, ppn='1', wal
                    .replace('JOB_OUTPUTS', abspath(join_path(project_path, 'job_outputs')))
                    .replace('EMAILADDRESS', defaults['email'])]
 
-    jobstr += ['Rscript {}/edgeR_script.r -p {}, -c {} -s {} -o {} -f {}'.format(abspath(join_path(iLoop_RNAseq_pipeline.__path__[0], 'scripts')),
+    jobstr += ['Rscript {}/edgeR_script.r -p {} -c {} -s {} -o {} -f {}'.format(abspath(join_path(iLoop_RNAseq_pipeline.__path__[0], 'scripts')),
                                                                            project_path,
                                                                            abspath(join_path(project_path,
                                                                                              'results',
