@@ -21,7 +21,7 @@ df = pd.concat([pd.read_table(os.path.join(os.path.abspath(args.project_path),
                                            sample,
                                            'featureCounts_{}.out'.format(sample)),
                               header=1,
-                              skiprows=1,
+                              skiprows=0,
                               index_col=0,
                               usecols=[0,6],
                               names=['Feature', sample]) for group in groups.values() for sample in group.keys()], axis=1)
