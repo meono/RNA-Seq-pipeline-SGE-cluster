@@ -107,10 +107,10 @@ def mapandlink_jobs(project_path, sample, reads, defaults, ref, jobs, ppn='8', w
                    .replace('EMAILADDRESS', defaults['email'])]
 
     jobstr += ['''# Load modules needed by myapplication.x
-module load ngs tools samtools/1.2 bowtie2/2.2.5 cufflinks/2.2.1
-# hisat2 and stringtie modules are not kept up-to-date, so use the local ones:
-PATH=$PATH:/home/projects/cu_10010/programs/hisat2-2.0.4:/home/projects/cu_10010/programs/stringtie-1.2.3.Linux_x86_64
-export PATH''']
+module load ngs tools samtools/1.2 cufflinks/2.2.1
+# bowtie2, hisat2 and stringtie modules are not kept up-to-date, so use the local ones:
+PATH=$PATH:{bowtie2_path}:{hisat2_path}:{stringtie_path}
+export PATH'''.format(bowtie2_path=defaults['bowtie2_path'], hisat2_path=defaults['hisat2_path'], stringtie_path=defaults['stringtie_path'])]
 
     jobstr += ['export hisat2_genomic_indexes={}'.format(ref['hisat2_genomic_indexes'])]
     if (map_to_mask) and (not os.path.exists(join_path(project_path, 'map_to_mask', sample))):

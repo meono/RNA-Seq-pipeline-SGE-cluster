@@ -71,7 +71,7 @@ y <- DGEList(counts=counts, group=group)
 ## This is a manual filter to keep only Features that have a CPM>0.5 in at least two sample. Features with less are
 ## considered not expressed and won't be included in comparisons.
 ## CPM bound depends very much on the read/genome size. A CPM corresponding to 10 counts should be aimed for. Ideally,
-## this shouldn't not be a static value. Since we usually get generous amount of reads, it will be set to 0.5 for now.
+## this should not be a static value. Since we usually get generous amount of reads, it will be set to 0.5 for now.
 ## This may not apply in all conditions, so a switch as an argument might be useful later on.
 keep <- rowSums(cpm(y)>opt$filter) >= 2
 y <- y[keep, , keep.lib.sizes=FALSE]
